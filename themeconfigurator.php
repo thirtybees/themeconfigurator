@@ -24,7 +24,7 @@
 * International Registered Trademark & Property of PrestaShop SA
 */
 
-if (!defined('_PS_VERSION_'))
+if (!defined('_TB_VERSION_'))
 	exit;
 
 class ThemeConfigurator extends Module
@@ -37,12 +37,12 @@ class ThemeConfigurator extends Module
 	{
 		$this->name = 'themeconfigurator';
 		$this->tab = 'front_office_features';
-		$this->version = '2.1.2';
+		$this->version = '3.0.0';
 		$this->bootstrap = true;
 		$this->secure_key = Tools::encrypt($this->name);
 		$this->default_language = Language::getLanguage(Configuration::get('PS_LANG_DEFAULT'));
 		$this->languages = Language::getLanguages();
-		$this->author = 'PrestaShop';
+		$this->author = 'thirty bees';
 		parent::__construct();
 		$this->displayName = $this->l('Theme configurator');
 		$this->description = $this->l('Configure the main elements of your theme.');
