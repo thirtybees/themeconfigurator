@@ -125,9 +125,14 @@ class ThemeConfigurator extends Module
     {
         $result = true;
 
-        if ($languages === null) {
-            $languages = Language::getLanguages(true);
+        if (defined('TB_INSTALLATION_IN_PROGRESS')) {
+            $languages = Language::getLanguages([['id_lang' => 1]]);
+        } else {
+            if ($languages === null) {
+                $languages = Language::getLanguages(true);
+            }
         }
+
 
         foreach ($languages as $language) {
             for ($i = 1; $i < 6; $i++) {
