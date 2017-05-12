@@ -34,9 +34,9 @@ class AdminThemeConfiguratorController extends ModuleAdminController
 		$total = count($items);
 		$success = true;
 		for ($i = 1; $i <= $total; $i++)
-			$success &= Db::getInstance()->update('themeconfigurator', array('item_order' => $i), '`id_item` = '.preg_replace('/(item-)([0-9]+)/', '${2}', $items[$i - 1]));
+			$success &= Db::getInstance()->update('themeconfigurator', ['item_order' => $i], '`id_item` = '.preg_replace('/(item-)([0-9]+)/', '${2}', $items[$i - 1]));
 		if (!$success)
-			die(Tools::jsonEncode(array('error' => 'Update Fail')));
-		die(Tools::jsonEncode(array('success' => 'Update Success !', 'error' => false)));
+			die(Tools::jsonEncode(['error' => 'Update Fail']));
+		die(Tools::jsonEncode(['success' => 'Update Success !', 'error' => false]));
 	}
 }

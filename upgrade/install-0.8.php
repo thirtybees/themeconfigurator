@@ -10,7 +10,7 @@ function upgrade_module_0_8($object)
 {
 	$upgrade_version = '0.8';
 
-	$object->upgrade_detail[$upgrade_version] = array();
+	$object->upgrade_detail[$upgrade_version] = [];
 
 	// Change url type from varchar to text to avoid url length issues
 	$query = 'ALTER TABLE  `'._DB_PREFIX_.'themeconfigurator` CHANGE  `url`  `url` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL';
