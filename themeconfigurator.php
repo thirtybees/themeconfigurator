@@ -1,864 +1,848 @@
 <?php
-/**
- * 2007-2016 PrestaShop
- *
- * Thirty Bees is an extension to the PrestaShop e-commerce software developed by PrestaShop SA
- * Copyright (C) 2017 Thirty Bees
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@thirtybees.com so we can send you a copy immediately.
- *
- * @author    Thirty Bees <modules@thirtybees.com>
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2017 Thirty Bees
- * @copyright 2007-2016 PrestaShop SA
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- * PrestaShop is an internationally registered trademark & property of PrestaShop SA
- */
+/*
+* 2007-2016 PrestaShop
+*
+* NOTICE OF LICENSE
+*
+* This source file is subject to the Academic Free License (AFL 3.0)
+* that is bundled with this package in the file LICENSE.txt.
+* It is also available through the world-wide-web at this URL:
+* http://opensource.org/licenses/afl-3.0.php
+* If you did not receive a copy of the license and are unable to
+* obtain it through the world-wide-web, please send an email
+* to license@prestashop.com so we can send you a copy immediately.
+*
+* DISCLAIMER
+*
+* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+* versions in the future. If you wish to customize PrestaShop for your
+* needs please refer to http://www.prestashop.com for more information.
+*
+* @author	PrestaShop SA <contact@prestashop.com>
+* @copyright	2007-2016 PrestaShop SA
+* @license	http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+* International Registered Trademark & Property of PrestaShop SA
+*/
 
-if (!defined('_TB_VERSION_')) {
-    exit;
-}
+if (!defined('_TB_VERSION_'))
+	exit;
 
-/**
- * Class ThemeConfigurator
- */
 class ThemeConfigurator extends Module
 {
-    protected $max_image_size = 1048576;
-    protected $default_language;
-    protected $languages;
+	protected $max_image_size = 1048576;
+	protected $default_language;
+	protected $languages;
 
-    /**
-     * ThemeConfigurator constructor.
-     */
-    public function __construct()
-    {
-        $this->name = 'themeconfigurator';
-        $this->tab = 'front_office_features';
-        $this->version = '3.0.0';
-        $this->bootstrap = true;
-        $this->secure_key = Tools::encrypt($this->name);
-        $this->default_language = Language::getLanguage(Configuration::get('PS_LANG_DEFAULT'));
-        $this->languages = Language::getLanguages();
-        $this->author = 'thirty bees';
-        parent::__construct();
-        $this->displayName = $this->l('Theme configurator');
-        $this->description = $this->l('Configure the main elements of your theme.');
-        $this->ps_versions_compliancy = ['min' => '1.6', 'max' => '1.6.99.99'];
-        $this->module_path = _PS_MODULE_DIR_.$this->name.'/';
-        $this->uploads_path = _PS_MODULE_DIR_.$this->name.'/img/';
-        $this->admin_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/admin/';
-        $this->hooks_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/hooks/';
-    }
+	public function __construct()
+	{
+		$this->name = 'themeconfigurator';
+		$this->tab = 'front_office_features';
+		$this->version = '3.0.0';
+		$this->bootstrap = true;
+		$this->secure_key = Tools::encrypt($this->name);
+		$this->default_language = Language::getLanguage(Configuration::get('PS_LANG_DEFAULT'));
+		$this->languages = Language::getLanguages();
+		$this->author = 'thirty bees';
+		parent::__construct();
+		$this->displayName = $this->l('Theme configurator');
+		$this->description = $this->l('Configure the main elements of your theme.');
+		$this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.99.99');
+		$this->module_path = _PS_MODULE_DIR_.$this->name.'/';
+		$this->uploads_path = _PS_MODULE_DIR_.$this->name.'/img/';
+		$this->admin_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/admin/';
+		$this->hooks_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/hooks/';
+	}
 
-    /**
-     * Install this module
-     *
-     * @return bool
-     */
-    public function install()
-    {
-        if (!parent::install()) {
-            return false;
-        }
+	public function createAjaxController()
+	{
+		$tab = new Tab();
+		$tab->active = 1;
+		$languages = Language::getLanguages(false);
+		if (is_array($languages))
+			foreach ($languages as $language)
+				$tab->name[$language['id_lang']] = 'themeconfigurator';
+		$tab->class_name = 'AdminThemeConfigurator';
+		$tab->module = $this->name;
+		$tab->id_parent = - 1;
+		return (bool)$tab->add();
+	}
 
-        $this->registerHook('displayHeader');
-        $this->registerHook('displayTopColumn');
-        $this->registerHook('displayLeftColumn');
-        $this->registerHook('displayRightColumn');
-        $this->registerHook('displayHome');
-        $this->registerHook('displayFooter');
-        $this->registerHook('displayBackOfficeHeader');
-        $this->registerHook('actionObjectLanguageAddAfter');
+	private function _removeAjaxContoller()
+	{
+		if ($tab_id = (int)Tab::getIdFromClassName('AdminThemeConfigurator'))
+		{
+			$tab = new Tab($tab_id);
+			$tab->delete();
+		}
+		return true;
+	}
 
-        $languages = Language::getLanguages(false);
-        if (empty($languages)) {
-            $this->installFixtures();
-        } else {
-            $this->installFixtures($languages);
-        }
+	public function install()
+	{
+		$themes_colors = array(
+			'theme1',
+			'theme2',
+			'theme3',
+			'theme4',
+			'theme5',
+			'theme6',
+			'theme7',
+			'theme8',
+			'theme9'
+		);
+		$themes_fonts = array(
+			'font1' => 'Open Sans',
+			'font2' => 'Josefin Slab',
+			'font3' => 'Arvo',
+			'font4' => 'Lato',
+			'font5' => 'Volkorn',
+			'font6' => 'Abril Fatface',
+			'font7' => 'Ubuntu',
+			'font8' => 'PT Sans',
+			'font9' => 'Old Standard TT',
+			'font10' => 'Droid Sans'
+		);
 
-        $this->installDB();
-        Configuration::updateValue('PS_TC_ACTIVE', 1);
-        Configuration::updateValue('PS_SET_DISPLAY_SUBCATEGORIES', 1);
+		if (!parent::install()
+			|| !$this->installDB()
+			|| !$this->installFixtures(Language::getLanguages(true)) ||
+			!$this->registerHook('displayHeader') ||
+			!$this->registerHook('displayTopColumn') ||
+			!$this->registerHook('displayLeftColumn') ||
+			!$this->registerHook('displayRightColumn') ||
+			!$this->registerHook('displayHome') ||
+			!$this->registerHook('displayFooter') ||
+			!$this->registerHook('displayBackOfficeHeader') ||
+			!$this->registerHook('actionObjectLanguageAddAfter') ||
+			!Configuration::updateValue('PS_TC_THEMES', serialize($themes_colors)) ||
+			!Configuration::updateValue('PS_TC_FONTS', serialize($themes_fonts)) ||
+			!Configuration::updateValue('PS_TC_THEME', '') ||
+			!Configuration::updateValue('PS_TC_FONT', '') ||
+			!Configuration::updateValue('PS_TC_ACTIVE', 1) ||
+			!Configuration::updateValue('PS_SET_DISPLAY_SUBCATEGORIES', 1) ||
+			!$this->createAjaxController()
+		)
+			return false;
 
-        return true;
-    }
+		return true;
+	}
 
-    protected function installDB()
-    {
-        return (
-            Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.'themeconfigurator`') &&
-            Db::getInstance()->execute(
-                '
+	private function installDB()
+	{
+		return (
+			Db::getInstance()->Execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.'themeconfigurator`') &&
+			Db::getInstance()->Execute('
 			CREATE TABLE `'._DB_PREFIX_.'themeconfigurator` (
-					`id_item` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-					`id_shop` INT(11) UNSIGNED NOT NULL,
-					`id_lang` INT(11) UNSIGNED NOT NULL,
-					`item_order` INT(11) UNSIGNED NOT NULL,
+					`id_item` int(10) unsigned NOT NULL AUTO_INCREMENT,
+					`id_shop` int(10) unsigned NOT NULL,
+					`id_lang` int(10) unsigned NOT NULL,
+					`item_order` int(10) unsigned NOT NULL,
 					`title` VARCHAR(100),
-					`title_use` tinyint(1) UNSIGNED NOT NULL DEFAULT \'0\',
+					`title_use` tinyint(1) unsigned NOT NULL DEFAULT \'0\',
 					`hook` VARCHAR(100),
 					`url` TEXT,
-					`target` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\',
+					`target` tinyint(1) unsigned NOT NULL DEFAULT \'0\',
 					`image` VARCHAR(100),
 					`image_w` VARCHAR(10),
 					`image_h` VARCHAR(10),
 					`html` TEXT,
-					`active` TINYINT(1) UNSIGNED NOT NULL DEFAULT \'1\',
+					`active` tinyint(1) unsigned NOT NULL DEFAULT \'1\',
 					PRIMARY KEY (`id_item`)
-			) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;'
-            )
-        );
+			) ENGINE = '._MYSQL_ENGINE_.' DEFAULT CHARSET=UTF8;')
+		);
 
-    }
+	}
 
-    public function installFixtures($languages = null)
-    {
-        $result = true;
+	protected function installFixture($hook, $id_image, $id_shop, $id_lang)
+	{
+		$result = true;
 
-        if (defined('TB_INSTALLATION_IN_PROGRESS')) {
-            $languages = Language::getLanguages([['id_lang' => 1]]);
-        } else {
-            if ($languages === null) {
-                $languages = Language::getLanguages(true);
-            }
-        }
+		$sizes = @getimagesize((dirname(__FILE__).DIRECTORY_SEPARATOR.'img'.DIRECTORY_SEPARATOR.'banner-img'.(int)$id_image.'.jpg'));
+		$width = (isset($sizes[0]) && $sizes[0])? (int)$sizes[0] : 0;
+		$height = (isset($sizes[1]) && $sizes[1])? (int)$sizes[1] : 0;
 
-
-        foreach ($languages as $language) {
-            for ($i = 1; $i < 6; $i++) {
-                $result &= $this->installFixture('home', $i, $this->context->shop->id, $language['id_lang']);
-            }
-
-            for ($i = 6; $i < 8; $i++) {
-                $result &= $this->installFixture('top', $i, $this->context->shop->id, $language['id_lang']);
-            }
-        }
-
-        return $result;
-    }
-
-    protected function installFixture($hook, $idImage, $idShop, $idLang)
-    {
-        $result = true;
-
-        $sizes = @getimagesize((dirname(__FILE__).DIRECTORY_SEPARATOR.'img'.DIRECTORY_SEPARATOR.'banner-img'.(int) $idImage.'.jpg'));
-        $width = (isset($sizes[0]) && $sizes[0]) ? (int) $sizes[0] : 0;
-        $height = (isset($sizes[1]) && $sizes[1]) ? (int) $sizes[1] : 0;
-
-        $result &= Db::getInstance()->insert(
-            'themeconfigurator',
-            [
-                'id_shop'    => (int) $idShop,
-                'id_lang'    => (int) $idLang,
-                'item_order' => (int) $idImage,
-                'title'      => '',
-                'title_use'  => '0',
-                'hook'       => pSQL($hook),
-                'url'        => 'https://thirtybees.com',
-                'target'     => '0',
-                'image'      => 'banner-img'.(int) $idImage.'.jpg',
-                'image_w'    => $width,
-                'image_h'    => $height,
-                'html'       => '',
-                'active'     => true,
-            ]
-        );
-
-        return $result;
-    }
-
-    public function uninstall()
-    {
-        $images = [];
-        if (count(Db::getInstance()->executeS('SHOW TABLES LIKE \''._DB_PREFIX_.'themeconfigurator\''))) {
-            $images = Db::getInstance()->executeS('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator`');
-        }
-        foreach ($images as $image) {
-            $this->deleteImage($image['image']);
-        }
-
-        if (!Db::getInstance()->Execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.'themeconfigurator`') || !parent::uninstall()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    protected function deleteImage($image)
-    {
-        $fileName = $this->uploads_path.$image;
-
-        if (realpath(dirname($fileName)) != realpath($this->uploads_path)) {
-            Tools::dieOrLog(sprintf('Could not find upload directory'));
-        }
-
-        if ($image != '' && is_file($fileName) && !strpos($fileName, 'banner-img') && !strpos($fileName, 'bg-theme') && !strpos($fileName, 'footer-bg')) {
-            unlink($fileName);
-        }
-    }
-
-    public function hookDisplayBackOfficeHeader()
-    {
-        if (Tools::getValue('configure') != $this->name) {
-            return;
-        }
-
-        $this->context->controller->addCSS($this->_path.'css/admin.css');
-        $this->context->controller->addJquery();
-        $this->context->controller->addJS($this->_path.'js/admin.js');
-    }
-
-    public function hookdisplayHeader()
-    {
-        $this->context->controller->addCss($this->_path.'css/hooks.css', 'all');
-
-        if ((int) Configuration::get('PS_TC_ACTIVE') == 1 && Tools::getValue('live_configurator_token') && Tools::getValue('live_configurator_token') == $this->getLiveConfiguratorToken() && $this->checkEnvironment()) {
-            $this->context->controller->addCSS($this->_path.'css/live_configurator.css');
-            $this->context->controller->addJS($this->_path.'js/live_configurator.js');
-
-            if (Tools::getValue('theme')) {
-                $this->context->controller->addCss($this->_path.'css/'.Tools::getValue('theme').'.css', 'all');
-            }
-
-            if (Tools::getValue('theme_font')) {
-                $this->context->controller->addCss($this->_path.'css/'.Tools::getValue('theme_font').'.css', 'all');
-            }
-        } else {
-            if (Configuration::get('PS_TC_THEME') != '') {
-                $this->context->controller->addCss($this->_path.'css/'.Configuration::get('PS_TC_THEME').'.css', 'all');
-            }
-
-            if (Configuration::get('PS_TC_FONT') != '') {
-                $this->context->controller->addCss($this->_path.'css/'.Configuration::get('PS_TC_FONT').'.css', 'all');
-            }
-        }
-
-        if (isset($this->context->controller->php_self) && $this->context->controller->php_self == 'category') {
-            $this->context->smarty->assign(
-                [
-                    'display_subcategories' => (int) Configuration::get('PS_SET_DISPLAY_SUBCATEGORIES'),
-                ]
-            );
-
-            return $this->display(__FILE__, 'hook.tpl');
-        }
-    }
-
-    public function getLiveConfiguratorToken()
-    {
-        return Tools::getAdminToken(
-            $this->name.(int) Tab::getIdFromClassName($this->name)
-            .(is_object(Context::getContext()->employee) ? (int) Context::getContext()->employee->id :
-                Tools::getValue('id_employee'))
-        );
-    }
-
-    protected function checkEnvironment()
-    {
-        $cookie = new Cookie('psAdmin', '', (int) Configuration::get('PS_COOKIE_LIFETIME_BO'));
-
-        return isset($cookie->id_employee) && isset($cookie->passwd) && Employee::checkPassword($cookie->id_employee, $cookie->passwd);
-    }
-
-    public function hookActionObjectLanguageAddAfter($params)
-    {
-        return $this->installFixtures([['id_lang' => (int) $params['object']->id]]);
-    }
-
-    public function hookdisplayTopColumn()
-    {
-        return $this->hookdisplayTop();
-    }
-
-    /**
-     * @return string|null
-     */
-    public function hookdisplayTop()
-    {
-        if (!isset($this->context->controller->php_self) || $this->context->controller->php_self != 'index') {
-            return null;
-        }
-        $this->context->smarty->assign(
-            [
-                'htmlitems' => $this->getItemsFromHook('top'),
-                'hook'      => 'top',
-            ]
-        );
-
-        return $this->display(__FILE__, 'hook.tpl');
-    }
-
-    protected function getItemsFromHook($hook)
-    {
-        if (!$hook) {
-            return false;
-        }
-
-        return Db::getInstance()->ExecuteS(
-            '
-		SELECT *
-		FROM `'._DB_PREFIX_.'themeconfigurator`
-		WHERE id_shop = '.(int) $this->context->shop->id.' AND id_lang = '.(int) $this->context->language->id.'
-		AND hook = \''.pSQL($hook).'\' AND active = 1
-		ORDER BY item_order ASC'
-        );
-    }
-
-    public function hookDisplayHome()
-    {
-        $this->context->smarty->assign(
-            [
-                'htmlitems' => $this->getItemsFromHook('home'),
-                'hook'      => 'home',
-            ]
-        );
-
-        return $this->display(__FILE__, 'hook.tpl');
-    }
-
-    public function hookDisplayLeftColumn()
-    {
-        $this->context->smarty->assign(
-            [
-                'htmlitems' => $this->getItemsFromHook('left'),
-                'hook'      => 'left',
-            ]
-        );
-
-        return $this->display(__FILE__, 'hook.tpl');
-    }
-
-    public function hookDisplayRightColumn()
-    {
-        $this->context->smarty->assign(
-            [
-                'htmlitems' => $this->getItemsFromHook('right'),
-                'hook'      => 'right',
-            ]
-        );
-
-        return $this->display(__FILE__, 'hook.tpl');
-    }
-
-    public function hookDisplayFooter()
-    {
-        $html = '';
-
-        if ((int) Configuration::get('PS_TC_ACTIVE') == 1 && Tools::getValue('live_configurator_token') && Tools::getValue('live_configurator_token') == $this->getLiveConfiguratorToken() && Tools::getIsset('id_employee') && $this->checkEnvironment()) {
-            if (Tools::isSubmit('submitLiveConfigurator')) {
-                Configuration::updateValue('PS_TC_THEME', Tools::getValue('theme'));
-                Configuration::updateValue('PS_TC_FONT', Tools::getValue('theme_font'));
-            }
-
-            $ad_image = $this->_path.'img/'.$this->context->language->iso_code.'/advertisement.png';
-
-            if (!file_exists($ad_image)) {
-                $ad_image = $this->_path.'img/en/advertisement.png';
-            }
-
-            $this->smarty->assign(
-                [
-                    'themes'                  => Tools::unserialize(Configuration::get('PS_TC_THEMES')),
-                    'fonts'                   => Tools::unserialize(Configuration::get('PS_TC_FONTS')),
-                    'theme_font'              => Tools::getValue('theme_font', Configuration::get('PS_TC_FONT')),
-                    'live_configurator_token' => $this->getLiveConfiguratorToken(),
-                    'id_shop'                 => (int) $this->context->shop->id,
-                    'id_employee'             => is_object($this->context->employee) ? (int) $this->context->employee->id :
-                        Tools::getValue('id_employee'),
-                    'advertisement_image'     => $ad_image,
-                    'advertisement_url'       => 'http://addons.prestashop.com/en/205-premium-templates?utm_source=back-office'
-                        .'&utm_medium=theme-configurator'
-                        .'&utm_campaign=back-office-'.Tools::strtoupper($this->context->language->iso_code)
-                        .'&utm_content='.(defined('_PS_HOST_MODE_') ? 'ondemand' : 'download'),
-                    'advertisement_text'      => $this->l('Over 800 PrestaShop premium templates! Browse now!'),
-                ]
-            );
-
-            $html .= $this->display(__FILE__, 'live_configurator.tpl');
-        }
-
-        $this->context->smarty->assign(
-            [
-                'htmlitems' => $this->getItemsFromHook('footer'),
-                'hook'      => 'footer',
-            ]
-        );
-
-        return $html.$this->display(__FILE__, 'hook.tpl');
-    }
-
-    public function getContent()
-    {
-        if (Tools::isSubmit('submitModule')) {
-            Configuration::updateValue('PS_QUICK_VIEW', (int) Tools::getValue('quick_view'));
-            Configuration::updateValue('PS_TC_ACTIVE', (int) Tools::getValue('live_conf'));
-            Configuration::updateValue('PS_GRID_PRODUCT', (int) Tools::getValue('grid_list'));
-            Configuration::updateValue('PS_SET_DISPLAY_SUBCATEGORIES', (int) Tools::getValue('sub_cat'));
-            foreach ($this->getConfigurableModules() as $module) {
-                if (!isset($module['is_module']) || !$module['is_module'] || !Validate::isModuleName($module['name']) || !Tools::isSubmit($module['name'])) {
-                    continue;
-                }
-
-                $moduleInstance = Module::getInstanceByName($module['name']);
-                if ($moduleInstance === false || !is_object($moduleInstance)) {
-                    continue;
-                }
-
-                $isInstalled = (int) Validate::isLoadedObject($moduleInstance);
-                if ($isInstalled) {
-                    if (($active = (int) Tools::getValue($module['name'])) == $moduleInstance->active) {
-                        continue;
-                    }
-
-                    if ($active) {
-                        $moduleInstance->enable();
-                    } else {
-                        $moduleInstance->disable();
-                    }
-                } else {
-                    if ((int) Tools::getValue($module['name'])) {
-                        $moduleInstance->install();
-                    }
-                }
-            }
-        }
-
-        if (Tools::isSubmit('newItem')) {
-            $this->addItem();
-        } elseif (Tools::isSubmit('updateItem')) {
-            $this->updateItem();
-        } elseif (Tools::isSubmit('removeItem')) {
-            $this->removeItem();
-        }
-
-        $html = $this->renderConfigurationForm();
-        $html .= $this->renderThemeConfiguratorForm();
-
-        return $html;
-    }
-
-    protected function getConfigurableModules()
-    {
-        return [
-            [
-                'label'     => $this->l('Display links to your store\'s social accounts (Twitter, Facebook, etc.)'),
-                'name'      => 'blocksocial',
-                'value'     => (int) Validate::isLoadedObject($module = Module::getInstanceByName('blocksocial')) && $module->isEnabledForShopContext(),
-                'is_module' => true,
-            ],
-            [
-                'label'     => $this->l('Display your contact information'),
-                'name'      => 'blockcontactinfos',
-                'value'     => (int) Validate::isLoadedObject($module = Module::getInstanceByName('blockcontactinfos')) && $module->isEnabledForShopContext(),
-                'is_module' => true,
-            ],
-            [
-                'label'     => $this->l('Display social sharing buttons on the product\'s page'),
-                'name'      => 'socialsharing',
-                'value'     => (int) Validate::isLoadedObject($module = Module::getInstanceByName('socialsharing')) && $module->isEnabledForShopContext(),
-                'is_module' => true,
-            ],
-            [
-                'label'     => $this->l('Display the Facebook block on the home page'),
-                'name'      => 'blockfacebook',
-                'value'     => (int) Validate::isLoadedObject($module = Module::getInstanceByName('blockfacebook')) && $module->isEnabledForShopContext(),
-                'is_module' => true,
-            ],
-            [
-                'label'     => $this->l('Display the custom CMS information block'),
-                'name'      => 'blockcmsinfo',
-                'value'     => (int) Validate::isLoadedObject($module = Module::getInstanceByName('blockcmsinfo')) && $module->isEnabledForShopContext(),
-                'is_module' => true,
-            ],
-            [
-                'label' => $this->l('Display quick view window on homepage and category pages'),
-                'name'  => 'quick_view',
-                'value' => (int) Tools::getValue('PS_QUICK_VIEW', Configuration::get('PS_QUICK_VIEW')),
-            ],
-            [
-                'label' => $this->l('Display categories as a list of products instead of the default grid-based display'),
-                'name'  => 'grid_list',
-                'value' => (int) Configuration::get('PS_GRID_PRODUCT'),
-                'desc'  => $this->l('Works only for first-time users. This setting is overridden by the user\'s choice as soon as the user cookie is set.'),
-            ],
-            [
-                'label'     => $this->l('Display top banner'),
-                'name'      => 'blockbanner',
-                'value'     => (int) Validate::isLoadedObject($module = Module::getInstanceByName('blockbanner')) && $module->isEnabledForShopContext(),
-                'is_module' => true,
-            ],
-            [
-                'label'     => $this->l('Display logos of available payment methods'),
-                'name'      => 'productpaymentlogos',
-                'value'     => (int) Validate::isLoadedObject($module = Module::getInstanceByName('productpaymentlogos')) && $module->isEnabledForShopContext(),
-                'is_module' => true,
-            ],
-            [
-                'label' => $this->l('Display subcategories'),
-                'name'  => 'sub_cat',
-                'value' => (int) Tools::getValue('PS_SET_DISPLAY_SUBCATEGORIES', Configuration::get('PS_SET_DISPLAY_SUBCATEGORIES')),
-            ],
-        ];
-    }
-
-    protected function addItem()
-    {
-        $title = Tools::getValue('item_title');
-        $content = Tools::getValue('item_html');
-
-        if (!Validate::isCleanHtml($title, (int) Configuration::get('PS_ALLOW_HTML_IFRAME'))
-            || !Validate::isCleanHtml($content, (int) Configuration::get('PS_ALLOW_HTML_IFRAME'))
-        ) {
-            $this->context->smarty->assign('error', $this->l('Invalid content'));
-
-            return false;
-        }
-
-        if (!$currentOrder = (int) Db::getInstance()->getValue(
-            '
-			SELECT item_order + 1
-			FROM `'._DB_PREFIX_.'themeconfigurator`
-			WHERE
-				id_shop = '.(int) $this->context->shop->id.'
-				AND id_lang = '.(int) Tools::getValue('id_lang').'
-				AND hook = \''.pSQL(Tools::getValue('item_hook')).'\'
-				ORDER BY item_order DESC'
-        )
-        ) {
-            $currentOrder = 1;
-        }
-
-        $imageW = is_numeric(Tools::getValue('item_img_w')) ? (int) Tools::getValue('item_img_w') : '';
-        $imageH = is_numeric(Tools::getValue('item_img_h')) ? (int) Tools::getValue('item_img_h') : '';
-
-        if (!empty($_FILES['item_img']['name'])) {
-            if (!$image = $this->uploadImage($_FILES['item_img'], $imageW, $imageH)) {
-                return false;
-            }
-        } else {
-            $image = '';
-            $imageW = '';
-            $imageH = '';
-        }
-
-        if (!Db::getInstance()->execute(
-            '
+		$result &= Db::getInstance()->Execute('
 			INSERT INTO `'._DB_PREFIX_.'themeconfigurator` (
 					`id_shop`, `id_lang`, `item_order`, `title`, `title_use`, `hook`, `url`, `target`, `image`, `image_w`, `image_h`, `html`, `active`
 			) VALUES (
-					\''.(int) $this->context->shop->id.'\',
-					\''.(int) Tools::getValue('id_lang').'\',
-					\''.(int) $currentOrder.'\',
-					\''.pSQL($title).'\',
-					\''.(int) Tools::getValue('item_title_use').'\',
-					\''.pSQL(Tools::getValue('item_hook')).'\',
-					\''.pSQL(Tools::getValue('item_url')).'\',
-					\''.(int) Tools::getValue('item_target').'\',
-					\''.pSQL($image).'\',
-					\''.pSQL($imageW).'\',
-					\''.pSQL($imageH).'\',
-					\''.pSQL($this->filterVar($content), true).'\',
-					1)'
-        )
-        ) {
-            if (!Tools::isEmpty($image)) {
-                $this->deleteImage($image);
-            }
+				\''.(int)$id_shop.'\',
+				\''.(int)$id_lang.'\',
+				\''.(int)$id_image.'\',
+				\'\',
+				\'0\',
+				\''.pSQL($hook).'\',
+				\'http://www.prestashop.com/\',
+				\'0\',
+				\'banner-img'.(int)$id_image.'.jpg\',
+				'.$width.',
+				'.$height.',
+				\'\',
+				1)
+			');
 
-            $this->context->smarty->assign('error', $this->l('An error occurred while saving data.'));
+		return $result;
+	}
 
-            return false;
-        }
+	public function installFixtures($languages = null)
+	{
+		$result = true;
 
-        $this->context->smarty->assign('confirmation', $this->l('New item successfully added.'));
+		if ($languages === null)
+			$languages = Language::getLanguages(true);
 
-        return true;
-    }
+		foreach ($languages as $language)
+		{
+			for ($i = 1; $i < 6; $i++)
+				$result &= $this->installFixture('home', $i, $this->context->shop->id, $language['id_lang']);
 
-    protected function uploadImage($image, $imageW = '', $imageH = '')
-    {
-        $res = false;
-        if (is_array($image) && (ImageManager::validateUpload($image, $this->max_image_size) === false) && ($tmp_name = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmp_name)) {
-            $salt = sha1(microtime());
-            $pathinfo = pathinfo($image['name']);
-            $imgName = $salt.'_'.Tools::str2url($pathinfo['filename']).'.'.$pathinfo['extension'];
+			for ($i = 6; $i < 8; $i++)
+				$result &= $this->installFixture('top', $i, $this->context->shop->id, $language['id_lang']);
+		}
 
-            if (ImageManager::resize($tmp_name, dirname(__FILE__).'/img/'.$imgName, $imageW, $imageH)) {
-                $res = true;
-            }
-        }
+		return $result;
+	}
 
-        if (!$res) {
-            $this->context->smarty->assign('error', $this->l('An error occurred during the image upload.'));
 
-            return false;
-        }
+	public function uninstall()
+	{
+		$images = array();
+		if (count(Db::getInstance()->executeS('SHOW TABLES LIKE \''._DB_PREFIX_.'themeconfigurator\'')))
+			$images = Db::getInstance()->executeS('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator`');
+		foreach ($images as $image)
+			$this->deleteImage($image['image']);
 
-        return isset($imgName) ? $imgName : false;
-    }
+		if (!Db::getInstance()->Execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.'themeconfigurator`') || !$this->_removeAjaxContoller() || !parent::uninstall())
+			return false;
 
-    protected function filterVar($value)
-    {
-        if (version_compare(_PS_VERSION_, '1.6.0.7', '>=') === true) {
-            return Tools::purifyHTML($value);
-        } else {
-            return filter_var($value, FILTER_SANITIZE_STRING);
-        }
-    }
+		return true;
+	}
 
-    protected function updateItem()
-    {
-        $idItem = (int) Tools::getValue('item_id');
-        $title = Tools::getValue('item_title');
-        $content = Tools::getValue('item_html');
+	public function hookDisplayBackOfficeHeader()
+	{
+		if (Tools::getValue('configure') != $this->name)
+			return;
 
-        if (!Validate::isCleanHtml($title, (int) Configuration::get('PS_ALLOW_HTML_IFRAME')) || !Validate::isCleanHtml($content, (int) Configuration::get('PS_ALLOW_HTML_IFRAME'))) {
-            $this->context->smarty->assign('error', $this->l('Invalid content'));
+		$this->context->controller->addCSS($this->_path.'css/admin.css');
+		$this->context->controller->addJquery();
+		$this->context->controller->addJS($this->_path.'js/admin.js');
+	}
 
-            return false;
-        }
+	protected function checkEnvironment()
+	{
+		$cookie = new Cookie('psAdmin', '', (int)Configuration::get('PS_COOKIE_LIFETIME_BO'));
+		return isset($cookie->id_employee) && isset($cookie->passwd) && Employee::checkPassword($cookie->id_employee, $cookie->passwd);
+	}
 
-        $newImage = '';
-        $imageW = (is_numeric(Tools::getValue('item_img_w'))) ? (int) Tools::getValue('item_img_w') : '';
-        $imageH = (is_numeric(Tools::getValue('item_img_h'))) ? (int) Tools::getValue('item_img_h') : '';
+	public function hookdisplayHeader()
+	{
+		$this->context->controller->addCss($this->_path.'css/hooks.css', 'all');
 
-        if (!empty($_FILES['item_img']['name'])) {
-            if ($old_image = Db::getInstance()->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int) $idItem)) {
-                if (file_exists(dirname(__FILE__).'/img/'.$old_image)) {
-                    @unlink(dirname(__FILE__).'/img/'.$old_image);
-                }
-            }
+		if ((int)Configuration::get('PS_TC_ACTIVE') == 1 && Tools::getValue('live_configurator_token') && Tools::getValue('live_configurator_token') == $this->getLiveConfiguratorToken() && $this->checkEnvironment())
+		{
+			$this->context->controller->addCSS($this->_path.'css/live_configurator.css');
+			$this->context->controller->addJS($this->_path.'js/live_configurator.js');
 
-            if (!$image = $this->uploadImage($_FILES['item_img'], $imageW, $imageH)) {
-                return false;
-            }
+			if (Tools::getValue('theme'))
+				$this->context->controller->addCss($this->_path.'css/'.Tools::getValue('theme').'.css', 'all');
 
-            $newImage = 'image = \''.pSQL($image).'\',';
-        }
+			if (Tools::getValue('theme_font'))
+				$this->context->controller->addCss($this->_path.'css/'.Tools::getValue('theme_font').'.css', 'all');
+		}
+		else
+		{
+			if (Configuration::get('PS_TC_THEME') != '')
+				$this->context->controller->addCss($this->_path.'css/'.Configuration::get('PS_TC_THEME').'.css', 'all');
 
-        if (!Db::getInstance()->execute(
-            '
-			UPDATE `'._DB_PREFIX_.'themeconfigurator` SET
-					title = \''.pSQL($title).'\',
-					title_use = '.(int) Tools::getValue('item_title_use').',
-					hook = \''.pSQL(Tools::getValue('item_hook')).'\',
-					url = \''.pSQL(Tools::getValue('item_url')).'\',
-					target = '.(int) Tools::getValue('item_target').',
-					'.$newImage.'
-					image_w = '.(int) $imageW.',
-					image_h = '.(int) $imageH.',
-					active = '.(int) Tools::getValue('item_active').',
-					html = \''.pSQL($this->filterVar($content), true).'\'
-			WHERE id_item = '.(int) Tools::getValue('item_id')
-        )
-        ) {
-            if ($image = Db::getInstance()->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int) Tools::getValue('item_id'))) {
-                $this->deleteImage($image);
-            }
+			if (Configuration::get('PS_TC_FONT') != '')
+				$this->context->controller->addCss($this->_path.'css/'.Configuration::get('PS_TC_FONT').'.css', 'all');
+		}
 
-            $this->context->smarty->assign('error', $this->l('An error occurred while saving data.'));
+		if (isset($this->context->controller->php_self) && $this->context->controller->php_self == 'category')
+		{
+			$this->context->smarty->assign(array(
+				'display_subcategories' => (int)Configuration::get('PS_SET_DISPLAY_SUBCATEGORIES')
+			));
 
-            return false;
-        }
+			return $this->display(__FILE__, 'hook.tpl');
+		}
+	}
 
-        $this->context->smarty->assign('confirmation', $this->l('Successfully updated.'));
+	public function hookActionObjectLanguageAddAfter($params)
+	{
+		return $this->installFixtures(array(array('id_lang' => (int)$params['object']->id)));
+	}
 
-        return true;
-    }
+	public function hookdisplayTopColumn()
+	{
+		return $this->hookdisplayTop();
+	}
 
-    protected function removeItem()
-    {
-        $id_item = (int) Tools::getValue('item_id');
+	public function hookdisplayTop()
+	{
+		if (!isset($this->context->controller->php_self) || $this->context->controller->php_self != 'index')
+			return ;
+		$this->context->smarty->assign(array(
+			'htmlitems' => $this->getItemsFromHook('top'),
+			'hook' => 'top'
+		));
 
-        if ($image = Db::getInstance()->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int) $id_item)) {
-            $this->deleteImage($image);
-        }
+		return $this->display(__FILE__, 'hook.tpl');
+	}
 
-        Db::getInstance()->delete(_DB_PREFIX_.'themeconfigurator', 'id_item = '.(int) $id_item);
+	public function hookDisplayHome()
+	{
+		$this->context->smarty->assign(array(
+			'htmlitems' => $this->getItemsFromHook('home'),
+			'hook' => 'home'
+		));
 
-        if (Db::getInstance()->Affected_Rows() == 1) {
-            Db::getInstance()->execute(
-                '
+		return $this->display(__FILE__, 'hook.tpl');
+	}
+
+	public function hookDisplayLeftColumn()
+	{
+		$this->context->smarty->assign(array(
+			'htmlitems' => $this->getItemsFromHook('left'),
+			'hook' => 'left'
+		));
+
+		return $this->display(__FILE__, 'hook.tpl');
+	}
+
+	public function hookDisplayRightColumn()
+	{
+		$this->context->smarty->assign(array(
+			'htmlitems' => $this->getItemsFromHook('right'),
+			'hook' => 'right'
+		));
+
+		return $this->display(__FILE__, 'hook.tpl');
+	}
+
+	public function hookDisplayFooter()
+	{
+		$html = '';
+
+		if ((int)Configuration::get('PS_TC_ACTIVE') == 1 && Tools::getValue('live_configurator_token') && Tools::getValue('live_configurator_token') == $this->getLiveConfiguratorToken() && Tools::getIsset('id_employee') && $this->checkEnvironment())
+		{
+			if (Tools::isSubmit('submitLiveConfigurator'))
+			{
+				Configuration::updateValue('PS_TC_THEME', Tools::getValue('theme'));
+				Configuration::updateValue('PS_TC_FONT', Tools::getValue('theme_font'));
+			}
+
+			$ad_image = $this->_path.'img/'.$this->context->language->iso_code.'/advertisement.png';
+
+			if (!file_exists($ad_image))
+				$ad_image = $this->_path.'img/en/advertisement.png';
+
+			$this->smarty->assign(array(
+				'themes' => Tools::unserialize(Configuration::get('PS_TC_THEMES')),
+				'fonts' => Tools::unserialize(Configuration::get('PS_TC_FONTS')),
+				'theme_font' => Tools::getValue('theme_font', Configuration::get('PS_TC_FONT')),
+				'live_configurator_token' => $this->getLiveConfiguratorToken(),
+				'id_shop' => (int)$this->context->shop->id,
+				'id_employee' => is_object($this->context->employee) ? (int)$this->context->employee->id :
+					Tools::getValue('id_employee'),
+				'advertisement_image' => $ad_image,
+				'advertisement_url' => 'http://addons.prestashop.com/en/205-premium-templates?utm_source=back-office'
+					.'&utm_medium=theme-configurator'
+					.'&utm_campaign=back-office-'.Tools::strtoupper($this->context->language->iso_code)
+					.'&utm_content='.(defined('_PS_HOST_MODE_') ? 'ondemand' : 'download'),
+				'advertisement_text' => $this->l('Over 800 PrestaShop premium templates! Browse now!')
+			));
+
+			$html .= $this->display(__FILE__, 'live_configurator.tpl');
+		}
+
+		$this->context->smarty->assign(array(
+			'htmlitems' => $this->getItemsFromHook('footer'),
+			'hook' => 'footer'
+		));
+
+		return $html.$this->display(__FILE__, 'hook.tpl');
+	}
+
+	protected function getItemsFromHook($hook)
+	{
+		if (!$hook)
+			return false;
+
+		return Db::getInstance()->ExecuteS('
+		SELECT *
+		FROM `'._DB_PREFIX_.'themeconfigurator`
+		WHERE id_shop = '.(int)$this->context->shop->id.' AND id_lang = '.(int)$this->context->language->id.'
+		AND hook = \''.pSQL($hook).'\' AND active = 1
+		ORDER BY item_order ASC');
+	}
+
+	protected function deleteImage($image)
+	{
+		$file_name = $this->uploads_path.$image;
+
+		if (realpath(dirname($file_name)) != realpath($this->uploads_path))
+			Tools::dieOrLog(sprintf('Could not find upload directory'));
+
+		if ($image != '' && is_file($file_name) && !strpos($file_name, 'banner-img') && !strpos($file_name, 'bg-theme') && !strpos($file_name, 'footer-bg'))
+			unlink($file_name);
+	}
+
+	protected function removeItem()
+	{
+		$id_item = (int)Tools::getValue('item_id');
+
+		if ($image = Db::getInstance()->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int)$id_item))
+			$this->deleteImage($image);
+
+		Db::getInstance()->delete(_DB_PREFIX_.'themeconfigurator', 'id_item = '.(int)$id_item);
+
+		if (Db::getInstance()->Affected_Rows() == 1)
+		{
+			Db::getInstance()->execute('
 				UPDATE `'._DB_PREFIX_.'themeconfigurator`
 				SET item_order = item_order-1
 				WHERE (
-					item_order > '.(int) Tools::getValue('item_order').' AND
-					id_shop = '.(int) $this->context->shop->id.' AND
+					item_order > '.(int)Tools::getValue('item_order').' AND
+					id_shop = '.(int)$this->context->shop->id.' AND
 					hook = \''.pSQL(Tools::getValue('item_hook')).'\')'
-            );
-            Tools::redirectAdmin('index.php?tab=AdminModules&configure='.$this->name.'&conf=6&token='.Tools::getAdminTokenLite('AdminModules'));
-        } else {
-            $this->context->smarty->assign('error', $this->l('Can\'t delete the slide.'));
-        }
-    }
+			);
+			Tools::redirectAdmin('index.php?tab=AdminModules&configure='.$this->name.'&conf=6&token='.Tools::getAdminTokenLite('AdminModules'));
+		}
+		else
+			$this->context->smarty->assign('error', $this->l('Can\'t delete the slide.'));
+	}
 
-    public function renderConfigurationForm()
-    {
-        $inputs = [];
+	protected function updateItem()
+	{
+		$id_item = (int)Tools::getValue('item_id');
+		$title = Tools::getValue('item_title');
+		$content = Tools::getValue('item_html');
 
-        foreach ($this->getConfigurableModules() as $module) {
-            $desc = '';
+		if (!Validate::isCleanHtml($title, (int)Configuration::get('PS_ALLOW_HTML_IFRAME')) || !Validate::isCleanHtml($content, (int)Configuration::get('PS_ALLOW_HTML_IFRAME')))
+		{
+			$this->context->smarty->assign('error', $this->l('Invalid content'));
+			return false;
+		}
 
-            if (isset($module['is_module']) && $module['is_module']) {
-                $module_instance = Module::getInstanceByName($module['name']);
-                if (Validate::isLoadedObject($module_instance) && method_exists($module_instance, 'getContent')) {
-                    $desc = '<a class="btn btn-default" href="'.$this->context->link->getAdminLink('AdminModules', true).'&configure='.urlencode($module_instance->name).'&tab_module='.$module_instance->tab.'&module_name='.urlencode($module_instance->name).'">'.$this->l('Configure').' <i class="icon-external-link"></i></a>';
-                }
-            }
-            if (!$desc && isset($module['desc']) && $module['desc']) {
-                $desc = $module['desc'];
-            }
+		$new_image = '';
+		$image_w = (is_numeric(Tools::getValue('item_img_w'))) ? (int)Tools::getValue('item_img_w') : '';
+		$image_h = (is_numeric(Tools::getValue('item_img_h'))) ? (int)Tools::getValue('item_img_h') : '';
 
-            $inputs[] = [
-                'type'   => 'switch',
-                'label'  => $module['label'],
-                'name'   => $module['name'],
-                'desc'   => $desc,
-                'values' => [
-                    [
-                        'id'    => 'active_on',
-                        'value' => 1,
-                        'label' => $this->l('Enabled'),
-                    ],
-                    [
-                        'id'    => 'active_off',
-                        'value' => 0,
-                        'label' => $this->l('Disabled'),
-                    ],
-                ],
-            ];
-        }
+		if (!empty($_FILES['item_img']['name']))
+		{
+			if ($old_image = Db::getInstance()->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int)$id_item))
+				if (file_exists(dirname(__FILE__).'/img/'.$old_image))
+					@unlink(dirname(__FILE__).'/img/'.$old_image);
 
-        $fields_form = [
-            'form' => [
-                'legend' => [
-                    'title' => $this->l('Settings'),
-                    'icon'  => 'icon-cogs',
-                ],
-                'input'  => $inputs,
-                'submit' => [
-                    'title' => $this->l('Save'),
-                    'class' => 'btn btn-default pull-right',
-                ],
-            ],
-        ];
+			if (!$image = $this->uploadImage($_FILES['item_img'], $image_w, $image_h))
+				return false;
 
-        $helper = new HelperForm();
-        $helper->show_toolbar = false;
-        $helper->table = $this->table;
-        $lang = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
-        $helper->default_form_language = $lang->id;
-        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') ? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') : 0;
-        $this->fields_form = [];
+			$new_image = 'image = \''.pSQL($image).'\',';
+		}
 
-        $helper->identifier = $this->identifier;
-        $helper->submit_action = 'submitModule';
-        $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
-        $helper->token = Tools::getAdminTokenLite('AdminModules');
-        $helper->tpl_vars = [
-            'fields_value' => $this->getConfigFieldsValues(),
-            'languages'    => $this->context->controller->getLanguages(),
-            'id_language'  => $this->context->language->id,
-        ];
+		if (!Db::getInstance()->execute('
+			UPDATE `'._DB_PREFIX_.'themeconfigurator` SET
+					title = \''.pSQL($title).'\',
+					title_use = '.(int)Tools::getValue('item_title_use').',
+					hook = \''.pSQL(Tools::getValue('item_hook')).'\',
+					url = \''.pSQL(Tools::getValue('item_url')).'\',
+					target = '.(int)Tools::getValue('item_target').',
+					'.$new_image.'
+					image_w = '.(int)$image_w.',
+					image_h = '.(int)$image_h.',
+					active = '.(int)Tools::getValue('item_active').',
+					html = \''.pSQL($this->filterVar($content), true).'\'
+			WHERE id_item = '.(int)Tools::getValue('item_id')
+		))
+		{
+			if ($image = Db::getInstance()->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int)Tools::getValue('item_id')))
+				$this->deleteImage($image);
 
-        return $helper->generateForm([$fields_form]);
-    }
+			$this->context->smarty->assign('error', $this->l('An error occurred while saving data.'));
 
-    public function getConfigFieldsValues()
-    {
-        $values = [];
-        foreach ($this->getConfigurableModules() as $module) {
-            $values[$module['name']] = $module['value'];
-        }
+			return false;
+		}
 
-        return $values;
-    }
+		$this->context->smarty->assign('confirmation', $this->l('Successfully updated.'));
 
-    protected function renderThemeConfiguratorForm()
-    {
-        $idShop = (int) $this->context->shop->id;
-        $items = [];
-        $hooks = [];
+		return true;
+	}
 
-        $this->context->smarty->assign(
-            'htmlcontent',
-            [
-                'admin_tpl_path' => $this->admin_tpl_path,
-                'hooks_tpl_path' => $this->hooks_tpl_path,
+	protected function uploadImage($image, $image_w = '', $image_h = '')
+	{
+		$res = false;
+		if (is_array($image) && (ImageManager::validateUpload($image, $this->max_image_size) === false) && ($tmp_name = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmp_name))
+		{
+			$salt = sha1(microtime());
+			$pathinfo = pathinfo($image['name']);
+			$img_name = $salt.'_'.Tools::str2url($pathinfo['filename']).'.'.$pathinfo['extension'];
 
-                'info' => [
-                'module'    => $this->name,
-                'name'      => $this->displayName,
-                'version'   => $this->version,
-                'psVersion' => _PS_VERSION_,
-                'context'   => (Configuration::get('PS_MULTISHOP_FEATURE_ACTIVE') == 0) ? 1 : ($this->context->shop->getTotalShops() != 1) ? $this->context->shop->getContext() : 1,
-                ],
-            ]
-        );
+			if (ImageManager::resize($tmp_name, dirname(__FILE__).'/img/'.$img_name, $image_w, $image_h))
+				$res = true;
+		}
 
-        foreach ($this->languages as $language) {
-            $hooks[$language['id_lang']] = [
-                'home',
-                'top',
-                'left',
-                'right',
-                'footer',
-            ];
+		if (!$res)
+		{
+			$this->context->smarty->assign('error', $this->l('An error occurred during the image upload.'));
+			return false;
+		}
 
-            foreach ($hooks[$language['id_lang']] as $hook) {
-                $items[$language['id_lang']][$hook] = Db::getInstance()->ExecuteS(
-                    '
+		return $img_name;
+	}
+
+	public function getContent()
+	{
+		if (Tools::isSubmit('submitModule'))
+		{
+			Configuration::updateValue('PS_QUICK_VIEW', (int)Tools::getValue('quick_view'));
+			Configuration::updateValue('PS_TC_ACTIVE', (int)Tools::getValue('live_conf'));
+			Configuration::updateValue('PS_GRID_PRODUCT', (int)Tools::getValue('grid_list'));
+			Configuration::updateValue('PS_SET_DISPLAY_SUBCATEGORIES', (int)Tools::getValue('sub_cat'));
+			foreach ($this->getConfigurableModules() as $module)
+			{
+				if (!isset($module['is_module']) || !$module['is_module'] || !Validate::isModuleName($module['name']) || !Tools::isSubmit($module['name']))
+					continue;
+
+				$module_instance = Module::getInstanceByName($module['name']);
+				if ($module_instance === false || !is_object($module_instance))
+					continue;
+
+				$is_installed = (int)Validate::isLoadedObject($module_instance);
+				if ($is_installed)
+				{
+					if (($active = (int)Tools::getValue($module['name'])) == $module_instance->active)
+						continue;
+
+					if ($active)
+						$module_instance->enable();
+					else
+						$module_instance->disable();
+				}
+				else
+					if ((int)Tools::getValue($module['name']))
+						$module_instance->install();
+			}
+		}
+
+		if (Tools::isSubmit('newItem'))
+			$this->addItem();
+		elseif (Tools::isSubmit('updateItem'))
+			$this->updateItem();
+		elseif (Tools::isSubmit('removeItem'))
+			$this->removeItem();
+
+		$html = $this->renderConfigurationForm();
+		$html .= $this->renderThemeConfiguratorForm();
+
+		return $html;
+	}
+
+	protected function addItem()
+	{
+		$title = Tools::getValue('item_title');
+		$content = Tools::getValue('item_html');
+
+		if (!Validate::isCleanHtml($title, (int)Configuration::get('PS_ALLOW_HTML_IFRAME'))
+			|| !Validate::isCleanHtml($content, (int)Configuration::get('PS_ALLOW_HTML_IFRAME')))
+		{
+			$this->context->smarty->assign('error', $this->l('Invalid content'));
+			return false;
+		}
+
+		if (!$current_order = (int)Db::getInstance()->getValue('
+			SELECT item_order + 1
+			FROM `'._DB_PREFIX_.'themeconfigurator`
+			WHERE
+				id_shop = '.(int)$this->context->shop->id.'
+				AND id_lang = '.(int)Tools::getValue('id_lang').'
+				AND hook = \''.pSQL(Tools::getValue('item_hook')).'\'
+				ORDER BY item_order DESC'
+		))
+			$current_order = 1;
+
+		$image_w = is_numeric(Tools::getValue('item_img_w')) ? (int)Tools::getValue('item_img_w') : '';
+		$image_h = is_numeric(Tools::getValue('item_img_h')) ? (int)Tools::getValue('item_img_h') : '';
+
+		if (!empty($_FILES['item_img']['name']))
+		{
+			if (!$image = $this->uploadImage($_FILES['item_img'], $image_w, $image_h))
+				return false;
+		}
+		else
+		{
+			$image = '';
+			$image_w = '';
+			$image_h = '';
+		}
+
+		if (!Db::getInstance()->Execute('
+			INSERT INTO `'._DB_PREFIX_.'themeconfigurator` (
+					`id_shop`, `id_lang`, `item_order`, `title`, `title_use`, `hook`, `url`, `target`, `image`, `image_w`, `image_h`, `html`, `active`
+			) VALUES (
+					\''.(int)$this->context->shop->id.'\',
+					\''.(int)Tools::getValue('id_lang').'\',
+					\''.(int)$current_order.'\',
+					\''.pSQL($title).'\',
+					\''.(int)Tools::getValue('item_title_use').'\',
+					\''.pSQL(Tools::getValue('item_hook')).'\',
+					\''.pSQL(Tools::getValue('item_url')).'\',
+					\''.(int)Tools::getValue('item_target').'\',
+					\''.pSQL($image).'\',
+					\''.pSQL($image_w).'\',
+					\''.pSQL($image_h).'\',
+					\''.pSQL($this->filterVar($content), true).'\',
+					1)'
+		))
+		{
+			if (!Tools::isEmpty($image))
+				$this->deleteImage($image);
+
+			$this->context->smarty->assign('error', $this->l('An error occurred while saving data.'));
+			return false;
+		}
+
+		$this->context->smarty->assign('confirmation', $this->l('New item successfully added.'));
+		return true;
+	}
+
+	public function renderConfigurationForm()
+	{
+		$inputs = array();
+
+		foreach ($this->getConfigurableModules() as $module)
+		{
+			$desc = '';
+
+			if (isset($module['is_module']) && $module['is_module'])
+			{
+				$module_instance = Module::getInstanceByName($module['name']);
+				if (Validate::isLoadedObject($module_instance) && method_exists($module_instance, 'getContent'))
+					$desc = '<a class="btn btn-default" href="'.$this->context->link->getAdminLink('AdminModules', true).'&configure='.urlencode($module_instance->name).'&tab_module='.$module_instance->tab.'&module_name='.urlencode($module_instance->name).'">'.$this->l('Configure').' <i class="icon-external-link"></i></a>';
+			}
+			if (!$desc && isset($module['desc']) && $module['desc'])
+				$desc = $module['desc'];
+
+			$inputs[] = array(
+				'type' => 'switch',
+				'label' => $module['label'],
+				'name' => $module['name'],
+				'desc' => $desc,
+				'values' => array(
+					array(
+						'id' => 'active_on',
+						'value' => 1,
+						'label' => $this->l('Enabled')
+					),
+					array(
+						'id' => 'active_off',
+						'value' => 0,
+						'label' => $this->l('Disabled')
+					)
+				),
+			);
+		}
+
+		$fields_form = array(
+			'form' => array(
+				'legend' => array(
+					'title' => $this->l('Settings'),
+					'icon' => 'icon-cogs'
+				),
+				'input' => $inputs,
+				'submit' => array(
+					'title' => $this->l('Save'),
+					'class' => 'btn btn-default pull-right'
+				)
+			),
+		);
+
+		$helper = new HelperForm();
+		$helper->show_toolbar = false;
+		$helper->table = $this->table;
+		$lang = new Language((int)Configuration::get('PS_LANG_DEFAULT'));
+		$helper->default_form_language = $lang->id;
+		$helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') ? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') : 0;
+		$this->fields_form = array();
+
+		$helper->identifier = $this->identifier;
+		$helper->submit_action = 'submitModule';
+		$helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
+		$helper->token = Tools::getAdminTokenLite('AdminModules');
+		$helper->tpl_vars = array(
+			'fields_value' => $this->getConfigFieldsValues(),
+			'languages' => $this->context->controller->getLanguages(),
+			'id_language' => $this->context->language->id
+		);
+
+		return $helper->generateForm(array($fields_form));
+	}
+
+	protected function renderThemeConfiguratorForm()
+	{
+		$id_shop = (int)$this->context->shop->id;
+		$items = array();
+		$hooks = array();
+
+		$this->context->smarty->assign('htmlcontent', array(
+			'admin_tpl_path' => $this->admin_tpl_path,
+			'hooks_tpl_path' => $this->hooks_tpl_path,
+
+			'info' => array(
+				'module' => $this->name,
+				'name' => $this->displayName,
+				'version' => $this->version,
+				'psVersion' => _PS_VERSION_,
+				'context' => (Configuration::get('PS_MULTISHOP_FEATURE_ACTIVE') == 0) ? 1 : ($this->context->shop->getTotalShops() != 1) ? $this->context->shop->getContext() : 1
+			)
+		));
+
+		foreach ($this->languages as $language)
+		{
+			$hooks[$language['id_lang']] = array(
+				'home',
+				'top',
+				'left',
+				'right',
+				'footer'
+			);
+
+			foreach ($hooks[$language['id_lang']] as $hook)
+				$items[$language['id_lang']][$hook] = Db::getInstance()->ExecuteS('
 					SELECT * FROM `'._DB_PREFIX_.'themeconfigurator`
-					WHERE id_shop = '.(int) $idShop.'
-					AND id_lang = '.(int) $language['id_lang'].'
+					WHERE id_shop = '.(int)$id_shop.'
+					AND id_lang = '.(int)$language['id_lang'].'
 					AND hook = \''.pSQL($hook).'\'
 					ORDER BY item_order ASC'
-                );
-            }
-        }
+				);
+		}
 
-        $this->context->smarty->assign(
-            'htmlitems',
-            [
-                'items'      => $items,
-                'theme_url'  => $this->context->link->getAdminLink('AdminThemeConfigurator'),
-                'lang'       => [
-                'default'  => $this->default_language,
-                'all'      => $this->languages,
-                'lang_dir' => _THEME_LANG_DIR_,
-                'user'     => $this->context->language->id,
-                ],
-                'postAction' => 'index.php?tab=AdminModules&configure='.$this->name.'&token='.Tools::getAdminTokenLite('AdminModules').'&tab_module=other&module_name='.$this->name.'',
-                'id_shop'    => $idShop,
-            ]
-        );
+		$this->context->smarty->assign('htmlitems', array(
+			'items' => $items,
+			'theme_url' => $this->context->link->getAdminLink('AdminThemeConfigurator'),
+			'lang' => array(
+				'default' => $this->default_language,
+				'all' => $this->languages,
+				'lang_dir' => _THEME_LANG_DIR_,
+				'user' => $this->context->language->id
+			),
+			'postAction' => 'index.php?tab=AdminModules&configure='.$this->name.'&token='.Tools::getAdminTokenLite('AdminModules').'&tab_module=other&module_name='.$this->name.'',
+			'id_shop' => $id_shop
+		));
 
-        $this->context->controller->addJqueryUI('ui.sortable');
+		$this->context->controller->addJqueryUI('ui.sortable');
+		return $this->display(__FILE__, 'views/templates/admin/admin.tpl');
+	}
 
-        return $this->display(__FILE__, 'views/templates/admin/admin.tpl');
-    }
+	protected function getConfigurableModules()
+	{
+		// Construct the description for the 'Enable Live Configurator' switch
+		if ($this->context->shop->getBaseURL())
+		{
+			$request =
+			'live_configurator_token='.$this->getLiveConfiguratorToken()
+			.'&id_employee='.(int)$this->context->employee->id
+			.'&id_shop='.(int)$this->context->shop->id
+			.(Configuration::get('PS_TC_THEME') != '' ? '&theme='.Configuration::get('PS_TC_THEME') : '')
+			.(Configuration::get('PS_TC_FONT') != '' ? '&theme_font='.Configuration::get('PS_TC_FONT') : '');
+			$url = $this->context->link->getPageLink('index', null, $id_lang = null, $request);
 
-    public function ajaxProcessUpdatePosition()
-    {
-        $items = Tools::getValue('item');
-        $total = count($items);
-        $success = true;
-        for ($i = 1; $i <= $total; $i++) {
-            $success &= Db::getInstance()->update('themeconfigurator', ['item_order' => $i], '`id_item` = '.preg_replace('/(item-)([0-9]+)/', '${2}', $items[$i - 1]));
-        }
-        if (!$success) {
-            die(json_encode(['error' => 'Update Fail']));
-        }
-        die(json_encode(['success' => 'Update Success !', 'error' => false]));
-    }
+			$desc = '<a class="btn btn-default" href="'.$url.'" onclick="return !window.open($(this).attr(\'href\'));" id="live_conf_button">'
+				.$this->l('View').' <i class="icon-external-link"></i></a><br />'
+				.$this->l('Only you can see this on your front office - your visitors will not see this tool.');
+		}
+		else
+			$desc = $this->l('Only you can see this on your front office - your visitors will not see this tool.');
+
+		return array(
+			array(
+				'label' => $this->l('Display links to your store\'s social accounts (Twitter, Facebook, etc.)'),
+				'name' => 'blocksocial',
+				'value' => (int)Validate::isLoadedObject($module = Module::getInstanceByName('blocksocial')) && $module->isEnabledForShopContext(),
+				'is_module' => true,
+			),
+			array(
+				'label' => $this->l('Display your contact information'),
+				'name' => 'blockcontactinfos',
+				'value' => (int)Validate::isLoadedObject($module = Module::getInstanceByName('blockcontactinfos')) && $module->isEnabledForShopContext(),
+				'is_module' => true,
+			),
+			array(
+				'label' => $this->l('Display social sharing buttons on the product\'s page'),
+				'name' => 'socialsharing',
+				'value' => (int)Validate::isLoadedObject($module = Module::getInstanceByName('socialsharing')) && $module->isEnabledForShopContext(),
+				'is_module' => true,
+			),
+			array(
+				'label' => $this->l('Display the Facebook block on the home page'),
+				'name' => 'blockfacebook',
+				'value' => (int)Validate::isLoadedObject($module = Module::getInstanceByName('blockfacebook')) && $module->isEnabledForShopContext(),
+				'is_module' => true,
+			),
+			array(
+				'label' => $this->l('Display the custom CMS information block'),
+				'name' => 'blockcmsinfo',
+				'value' => (int)Validate::isLoadedObject($module = Module::getInstanceByName('blockcmsinfo')) && $module->isEnabledForShopContext(),
+				'is_module' => true,
+			),
+			array(
+				'label' => $this->l('Display quick view window on homepage and category pages'),
+				'name' => 'quick_view',
+				'value' => (int)Tools::getValue('PS_QUICK_VIEW', Configuration::get('PS_QUICK_VIEW'))
+			),
+			array(
+				'label' => $this->l('Display categories as a list of products instead of the default grid-based display'),
+				'name' => 'grid_list',
+				'value' => (int)Configuration::get('PS_GRID_PRODUCT'),
+				'desc' => $this->l('Works only for first-time users. This setting is overridden by the user\'s choice as soon as the user cookie is set.'),
+			),
+			array(
+				'label' => $this->l('Display top banner'),
+				'name' => 'blockbanner',
+				'value' => (int)Validate::isLoadedObject($module = Module::getInstanceByName('blockbanner')) && $module->isEnabledForShopContext(),
+				'is_module' => true,
+			),
+			array(
+				'label' => $this->l('Display logos of available payment methods'),
+				'name' => 'productpaymentlogos',
+				'value' => (int)Validate::isLoadedObject($module = Module::getInstanceByName('productpaymentlogos')) && $module->isEnabledForShopContext(),
+				'is_module' => true,
+			),
+			array(
+				'label' => $this->l('Display Live Configurator'),
+				'name' => 'live_conf',
+				'value' => (int)Tools::getValue('PS_TC_ACTIVE', Configuration::get('PS_TC_ACTIVE')),
+				'hint' => $this->l('This customization tool allows you to make color and font changes in your theme.'),
+				'desc' => $desc
+			),
+			array(
+				'label' => $this->l('Display subcategories'),
+				'name' => 'sub_cat',
+				'value' => (int)Tools::getValue('PS_SET_DISPLAY_SUBCATEGORIES', Configuration::get('PS_SET_DISPLAY_SUBCATEGORIES')),
+			)
+		);
+	}
+
+	public function getConfigFieldsValues()
+	{
+		$values = array();
+		foreach ($this->getConfigurableModules() as $module)
+			$values[$module['name']] = $module['value'];
+
+		return $values;
+	}
+
+	public function getLiveConfiguratorToken()
+	{
+		return Tools::getAdminToken($this->name.(int)Tab::getIdFromClassName($this->name)
+			.(is_object(Context::getContext()->employee) ? (int)Context::getContext()->employee->id :
+				Tools::getValue('id_employee')));
+	}
+
+	protected function filterVar($value)
+	{
+		if (version_compare(_PS_VERSION_, '1.6.0.7', '>=') === true)
+			return Tools::purifyHTML($value);
+		else
+			return filter_var($value, FILTER_SANITIZE_STRING);
+	}
 }
