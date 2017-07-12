@@ -54,7 +54,7 @@ class ThemeConfigurator extends Module
     {
         $this->name = 'themeconfigurator';
         $this->tab = 'front_office_features';
-        $this->version = '3.0.2';
+        $this->version = '3.0.3';
         $this->bootstrap = true;
         $this->secure_key = Tools::encrypt($this->name);
         $this->default_language = Language::getLanguage(Configuration::get('PS_LANG_DEFAULT'));
@@ -175,13 +175,7 @@ class ThemeConfigurator extends Module
         }
 
         foreach ($languages as $language) {
-            for ($i = 1; $i < 6; $i++) {
-                $result &= $this->installFixture('home', $i, $this->context->shop->id, $language['id_lang']);
-            }
-
-            for ($i = 6; $i < 8; $i++) {
-                $result &= $this->installFixture('top', $i, $this->context->shop->id, $language['id_lang']);
-            }
+            $result &= $this->installFixture('top', 1, $this->context->shop->id, $language['id_lang']);
         }
 
         return $result;
