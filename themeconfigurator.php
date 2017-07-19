@@ -45,6 +45,12 @@ class ThemeConfigurator extends Module
     public $hooks_tpl_path;
     /** @var string $uploads_path */
     public $uploads_path;
+    /** @var string $secure_key */
+    public $secure_key;
+    /** @var string $module_path */
+    public $module_path;
+    /** @var array $fields_form */
+    public $fields_form;
     // @codingStandardsIgnoreEnd
 
     /**
@@ -127,40 +133,6 @@ class ThemeConfigurator extends Module
     }
 
     /**
-     * Install the module's DB table(s)
-     *
-     * @return bool
-     */
-    private function installDB()
-    {
-        return $this->runQueries('install');
-    }
-
-    /**
-     * @param string $file
-     *
-     * @return bool
-     */
-    protected function runQueries($file)
-    {
-        if (!file_exists(__DIR__.DIRECTORY_SEPARATOR.'sql'.DIRECTORY_SEPARATOR.$file.'.sql')) {
-            return false;
-        } elseif (!$sql = file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'sql'.DIRECTORY_SEPARATOR.$file.'.sql')) {
-            return false;
-        }
-        $sql = str_replace(['PREFIX_', 'ENGINE_TYPE', 'DB_NAME'], [_DB_PREFIX_, _MYSQL_ENGINE_, _DB_NAME_], $sql);
-        $sql = preg_split("/;\s*[\r\n]+/", trim($sql));
-
-        foreach ($sql as $query) {
-            if (!Db::getInstance()->execute(trim($query))) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Install the module's fixtures
      *
      * @param array|null $languages
@@ -178,46 +150,6 @@ class ThemeConfigurator extends Module
         foreach ($languages as $language) {
             $result &= $this->installFixture('top', 1, $this->context->shop->id, $language['id_lang']);
         }
-
-        return $result;
-    }
-
-    /**
-     * Install a fixture
-     *
-     * @param string $hook
-     * @param int    $idImage
-     * @param int    $idShop
-     * @param int    $idLang
-     *
-     * @return bool
-     */
-    protected function installFixture($hook, $idImage, $idShop, $idLang)
-    {
-        $result = true;
-
-        $sizes = @getimagesize((dirname(__FILE__).DIRECTORY_SEPARATOR.'img'.DIRECTORY_SEPARATOR.'banner-img'.(int) $idImage.'.jpg'));
-        $width = (isset($sizes[0]) && $sizes[0]) ? (int) $sizes[0] : 0;
-        $height = (isset($sizes[1]) && $sizes[1]) ? (int) $sizes[1] : 0;
-
-        $result &= Db::getInstance()->insert(
-            'themeconfigurator',
-            [
-                'id_shop'    => (int) $idShop,
-                'id_lang'    => (int) $idLang,
-                'item_order' => (int) $idImage,
-                'title'      => '',
-                'title_use'  => '0',
-                'hook'       => pSQL($hook),
-                'url'        => 'https://www.thirtybees.com/',
-                'target'     => '0',
-                'image'      => 'banner-img'.(int) $idImage.'.jpg',
-                'image_w'    => (int) $width,
-                'image_h'    => (int) $height,
-                'html'       => '',
-                'active'     => 1,
-            ]
-        );
 
         return $result;
     }
@@ -265,39 +197,6 @@ class ThemeConfigurator extends Module
 
         if (!$this->runQueries('uninstall') || !$this->removeAjaxController() || !parent::uninstall()) {
             return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Delete an image
-     *
-     * @param $image
-     */
-    protected function deleteImage($image)
-    {
-        $fileName = $this->uploads_path.$image;
-
-        if (realpath(dirname($fileName)) != realpath($this->uploads_path)) {
-            Tools::dieOrLog(sprintf('Could not find upload directory'));
-        }
-
-        if ($image != '' && is_file($fileName) && !strpos($fileName, 'banner-img') && !strpos($fileName, 'bg-theme') && !strpos($fileName, 'footer-bg')) {
-            unlink($fileName);
-        }
-    }
-
-    /**
-     * Remove ajax controller
-     *
-     * @return bool
-     */
-    protected function removeAjaxController()
-    {
-        if ($idTab = (int) Tab::getIdFromClassName('AdminThemeConfigurator')) {
-            $tab = new Tab($idTab);
-            $tab->delete();
         }
 
         return true;
@@ -356,6 +255,8 @@ class ThemeConfigurator extends Module
 
             return $this->display(__FILE__, 'hook.tpl');
         }
+
+        return '';
     }
 
     /**
@@ -365,23 +266,7 @@ class ThemeConfigurator extends Module
      */
     public function getLiveConfiguratorToken()
     {
-        return Tools::getAdminToken(
-            $this->name.(int) Tab::getIdFromClassName($this->name)
-            .(is_object(Context::getContext()->employee) ? (int) Context::getContext()->employee->id :
-                Tools::getValue('id_employee'))
-        );
-    }
-
-    /**
-     * Check environment
-     *
-     * @return bool
-     */
-    protected function checkEnvironment()
-    {
-        $cookie = new Cookie('psAdmin', '', (int) Configuration::get('PS_COOKIE_LIFETIME_BO'));
-
-        return isset($cookie->id_employee) && isset($cookie->passwd) && Employee::checkPassword($cookie->id_employee, $cookie->passwd);
+        return Tools::getAdminToken($this->name.(int) Tab::getIdFromClassName($this->name).((Context::getContext()->employee instanceof Employee) ? (int) Context::getContext()->employee->id : Tools::getValue('id_employee')));
     }
 
     /**
@@ -420,31 +305,6 @@ class ThemeConfigurator extends Module
         );
 
         return $this->display(__FILE__, 'hook.tpl');
-    }
-
-    /**
-     * Get items from hook
-     *
-     * @param string $hook
-     *
-     * @return array|bool|false|null|PDOStatement
-     */
-    protected function getItemsFromHook($hook)
-    {
-        if (!$hook) {
-            return false;
-        }
-
-        return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS(
-            (new DbQuery())
-                ->select('*')
-                ->from('themeconfigurator')
-                ->where('`id_shop` = '.(int) $this->context->shop->id)
-                ->where('`id_lang` = '.(int) $this->context->language->id)
-                ->where('`hook` = \''.pSQL($hook).'\'')
-                ->where('`active` = 1')
-                ->orderBY('`item_order` ASC')
-        );
     }
 
     /**
@@ -521,13 +381,12 @@ class ThemeConfigurator extends Module
 
             $this->smarty->assign(
                 [
-                    'themes'                  => Tools::unserialize(Configuration::get('PS_TC_THEMES')),
-                    'fonts'                   => Tools::unserialize(Configuration::get('PS_TC_FONTS')),
+                    'themes'                  => unserialize(Configuration::get('PS_TC_THEMES')),
+                    'fonts'                   => unserialize(Configuration::get('PS_TC_FONTS')),
                     'theme_font'              => Tools::getValue('theme_font', Configuration::get('PS_TC_FONT')),
                     'live_configurator_token' => $this->getLiveConfiguratorToken(),
                     'id_shop'                 => (int) $this->context->shop->id,
-                    'id_employee'             => is_object($this->context->employee) ? (int) $this->context->employee->id :
-                        Tools::getValue('id_employee'),
+                    'id_employee'             => is_object($this->context->employee) ? (int) $this->context->employee->id : Tools::getValue('id_employee'),
                     'advertisement_image'     => $adImage,
                     'advertisement_url'       => '',
                     'advertisement_text'      => '',
@@ -606,17 +465,9 @@ class ThemeConfigurator extends Module
     {
         // Construct the description for the 'Enable Live Configurator' switch
         if ($this->context->shop->getBaseURL()) {
-            $request =
-                'live_configurator_token='.$this->getLiveConfiguratorToken()
-                .'&id_employee='.(int) $this->context->employee->id
-                .'&id_shop='.(int) $this->context->shop->id
-                .(Configuration::get('PS_TC_THEME') != '' ? '&theme='.Configuration::get('PS_TC_THEME') : '')
-                .(Configuration::get('PS_TC_FONT') != '' ? '&theme_font='.Configuration::get('PS_TC_FONT') : '');
-            $url = $this->context->link->getPageLink('index', null, $id_lang = null, $request);
-
-            $desc = '<a class="btn btn-default" href="'.$url.'" onclick="return !window.open($(this).attr(\'href\'));" id="live_conf_button">'
-                .$this->l('View').' <i class="icon-external-link"></i></a><br />'
-                .$this->l('Only you can see this on your front office - your visitors will not see this tool.');
+            $request = 'live_configurator_token='.$this->getLiveConfiguratorToken().'&id_employee='.(int) $this->context->employee->id.'&id_shop='.(int) $this->context->shop->id.(Configuration::get('PS_TC_THEME') != '' ? '&theme='.Configuration::get('PS_TC_THEME') : '').(Configuration::get('PS_TC_FONT') != '' ? '&theme_font='.Configuration::get('PS_TC_FONT') : '');
+            $url = $this->context->link->getPageLink('index', null, $idLang = null, $request);
+            $desc = '<a class="btn btn-default" href="'.$url.'" onclick="return !window.open($(this).attr(\'href\'));" id="live_conf_button">'.$this->l('View').' <i class="icon-external-link"></i></a><br />'.$this->l('Only you can see this on your front office - your visitors will not see this tool.');
         } else {
             $desc = $this->l('Only you can see this on your front office - your visitors will not see this tool.');
         }
@@ -800,11 +651,7 @@ class ThemeConfigurator extends Module
      */
     protected function filterVar($value)
     {
-        if (version_compare(_PS_VERSION_, '1.6.0.7', '>=') === true) {
-            return Tools::purifyHTML($value);
-        } else {
-            return filter_var($value, FILTER_SANITIZE_STRING);
-        }
+        return Tools::purifyHTML($value);
     }
 
     /**
@@ -822,12 +669,16 @@ class ThemeConfigurator extends Module
             return false;
         }
 
-        $newImage = '';
         $imageW = (is_numeric(Tools::getValue('item_img_w'))) ? (int) Tools::getValue('item_img_w') : '';
         $imageH = (is_numeric(Tools::getValue('item_img_h'))) ? (int) Tools::getValue('item_img_h') : '';
 
         if (!empty($_FILES['item_img']['name'])) {
-            if ($oldImage = Db::getInstance()->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int) $idItem)) {
+            if ($oldImage = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+                (new DbQuery())
+                    ->select('`image`')
+                    ->from('themeconfigurator')
+                    ->where('`id_item` = '.(int) $idItem)
+            )) {
                 if (file_exists(dirname(__FILE__).'/img/'.$oldImage)) {
                     @unlink(dirname(__FILE__).'/img/'.$oldImage);
                 }
@@ -902,7 +753,7 @@ class ThemeConfigurator extends Module
     /**
      * @return string
      */
-    public function renderConfigurationForm()
+    protected function renderConfigurationForm()
     {
         $inputs = [];
 
@@ -912,7 +763,8 @@ class ThemeConfigurator extends Module
             if (isset($module['is_module']) && $module['is_module']) {
                 $moduleInstance = Module::getInstanceByName($module['name']);
                 if (Validate::isLoadedObject($moduleInstance) && method_exists($moduleInstance, 'getContent')) {
-                    $desc = '<a class="btn btn-default" href="'.$this->context->link->getAdminLink('AdminModules', true).'&configure='.urlencode($moduleInstance->name).'&tab_module='.$moduleInstance->tab.'&module_name='.urlencode($moduleInstance->name).'">'.$this->l('Configure').' <i class="icon-external-link"></i></a>';
+                    $moduleLink = $this->context->link->getAdminLink('AdminModules', true).'&configure='.urlencode($moduleInstance->name).'&tab_module='.$moduleInstance->tab.'&module_name='.urlencode($moduleInstance->name);
+                    $desc = '<a class="btn btn-default" href="'.$moduleLink.'">'.$this->l('Configure').' <i class="icon-external-link"></i></a>';
                 }
             }
             if (!$desc && isset($module['desc']) && $module['desc']) {
@@ -977,7 +829,7 @@ class ThemeConfigurator extends Module
     /**
      * @return array
      */
-    public function getConfigFieldsValues()
+    protected function getConfigFieldsValues()
     {
         $values = [];
         foreach ($this->getConfigurableModules() as $module) {
@@ -1053,5 +905,149 @@ class ThemeConfigurator extends Module
         $this->context->controller->addJqueryUI('ui.sortable');
 
         return $this->display(__FILE__, 'views/templates/admin/admin.tpl');
+    }
+
+    /**
+     * @param string $file
+     *
+     * @return bool
+     */
+    protected function runQueries($file)
+    {
+        if (!file_exists(__DIR__.DIRECTORY_SEPARATOR.'sql'.DIRECTORY_SEPARATOR.$file.'.sql')) {
+            return false;
+        } elseif (!$sql = file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'sql'.DIRECTORY_SEPARATOR.$file.'.sql')) {
+            return false;
+        }
+        $sql = str_replace(['PREFIX_', 'ENGINE_TYPE', 'DB_NAME'], [_DB_PREFIX_, _MYSQL_ENGINE_, _DB_NAME_], $sql);
+        $sql = preg_split("/;\s*[\r\n]+/", trim($sql));
+
+        foreach ($sql as $query) {
+            if (!Db::getInstance()->execute(trim($query))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Install the module's DB table(s)
+     *
+     * @return bool
+     */
+    protected function installDB()
+    {
+        return $this->runQueries('install');
+    }
+
+    /**
+     * Install a fixture
+     *
+     * @param string $hook
+     * @param int    $idImage
+     * @param int    $idShop
+     * @param int    $idLang
+     *
+     * @return bool
+     */
+    protected function installFixture($hook, $idImage, $idShop, $idLang)
+    {
+        $result = true;
+
+        $sizes = @getimagesize((dirname(__FILE__).DIRECTORY_SEPARATOR.'img'.DIRECTORY_SEPARATOR.'banner-img'.(int) $idImage.'.jpg'));
+        $width = (isset($sizes[0]) && $sizes[0]) ? (int) $sizes[0] : 0;
+        $height = (isset($sizes[1]) && $sizes[1]) ? (int) $sizes[1] : 0;
+
+        $result &= Db::getInstance()->insert(
+            'themeconfigurator',
+            [
+                'id_shop'    => (int) $idShop,
+                'id_lang'    => (int) $idLang,
+                'item_order' => (int) $idImage,
+                'title'      => '',
+                'title_use'  => '0',
+                'hook'       => pSQL($hook),
+                'url'        => 'https://www.thirtybees.com/',
+                'target'     => '0',
+                'image'      => 'banner-img'.(int) $idImage.'.jpg',
+                'image_w'    => (int) $width,
+                'image_h'    => (int) $height,
+                'html'       => '',
+                'active'     => 1,
+            ]
+        );
+
+        return $result;
+    }
+
+    /**
+     * Delete an image
+     *
+     * @param $image
+     */
+    protected function deleteImage($image)
+    {
+        $fileName = $this->uploads_path.$image;
+
+        if (realpath(dirname($fileName)) != realpath($this->uploads_path)) {
+            Tools::dieOrLog(sprintf('Could not find upload directory'));
+        }
+
+        if ($image != '' && is_file($fileName) && !strpos($fileName, 'banner-img') && !strpos($fileName, 'bg-theme') && !strpos($fileName, 'footer-bg')) {
+            unlink($fileName);
+        }
+    }
+
+    /**
+     * Remove ajax controller
+     *
+     * @return bool
+     */
+    protected function removeAjaxController()
+    {
+        if ($idTab = (int) Tab::getIdFromClassName('AdminThemeConfigurator')) {
+            $tab = new Tab($idTab);
+            $tab->delete();
+        }
+
+        return true;
+    }
+
+    /**
+     * Check environment
+     *
+     * @return bool
+     */
+    protected function checkEnvironment()
+    {
+        $cookie = new Cookie('psAdmin', '', (int) Configuration::get('PS_COOKIE_LIFETIME_BO'));
+
+        return isset($cookie->id_employee) && isset($cookie->passwd) && Employee::checkPassword($cookie->id_employee, $cookie->passwd);
+    }
+
+    /**
+     * Get items from hook
+     *
+     * @param string $hook
+     *
+     * @return array|bool|false|null|PDOStatement
+     */
+    protected function getItemsFromHook($hook)
+    {
+        if (!$hook) {
+            return false;
+        }
+
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS(
+            (new DbQuery())
+                ->select('*')
+                ->from('themeconfigurator')
+                ->where('`id_shop` = '.(int) $this->context->shop->id)
+                ->where('`id_lang` = '.(int) $this->context->language->id)
+                ->where('`hook` = \''.pSQL($hook).'\'')
+                ->where('`active` = 1')
+                ->orderBY('`item_order` ASC')
+        );
     }
 }
