@@ -50,7 +50,7 @@ class ThemeConfigurator extends Module
     /** @var string $module_path */
     public $module_path;
     /** @var string $module_url */
-    public $module_url;
+    public $module_url = '';
     /** @var array $fields_form */
     public $fields_form;
     // @codingStandardsIgnoreEnd
@@ -72,11 +72,13 @@ class ThemeConfigurator extends Module
         $this->displayName = $this->l('Theme configurator');
         $this->description = $this->l('Configure the main elements of your theme.');
         $this->module_path = _PS_MODULE_DIR_.$this->name.'/';
-        $this->module_url = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query([
-            'configure'   => $this->name,
-            'tab_module'  => $this->tab,
-            'module_name' => $this->name,
-        ]);
+        if (isset(Context::getContext()->employee) && Validate::isLoadedObject(Context::getContext()->employee)) {
+            $this->module_url = Context::getContext()->link->getAdminLink('AdminModules', true).'&'.http_build_query([
+                'configure'   => $this->name,
+                'tab_module'  => $this->tab,
+                'module_name' => $this->name,
+            ]);
+        }
         $this->uploads_path = _PS_MODULE_DIR_.$this->name.'/img/';
         $this->admin_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/admin/';
         $this->hooks_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/hooks/';
