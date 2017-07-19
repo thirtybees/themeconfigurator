@@ -72,7 +72,7 @@ class ThemeConfigurator extends Module
         $this->displayName = $this->l('Theme configurator');
         $this->description = $this->l('Configure the main elements of your theme.');
         $this->module_path = _PS_MODULE_DIR_.$this->name.'/';
-        if (isset(Context::getContext()->employee) && Validate::isLoadedObject(Context::getContext()->employee)) {
+        if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id && Context::getContext()->link instanceof Link) {
             $this->module_url = Context::getContext()->link->getAdminLink('AdminModules', true).'&'.http_build_query([
                 'configure'   => $this->name,
                 'tab_module'  => $this->tab,
