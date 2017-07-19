@@ -49,6 +49,8 @@ class ThemeConfigurator extends Module
     public $secure_key;
     /** @var string $module_path */
     public $module_path;
+    /** @var string $module_url */
+    public $module_url;
     /** @var array $fields_form */
     public $fields_form;
     // @codingStandardsIgnoreEnd
@@ -70,6 +72,11 @@ class ThemeConfigurator extends Module
         $this->displayName = $this->l('Theme configurator');
         $this->description = $this->l('Configure the main elements of your theme.');
         $this->module_path = _PS_MODULE_DIR_.$this->name.'/';
+        $this->module_url = $this->context->link->getAdminLink('AdminModules', true).'&'.http_build_query([
+            'configure'   => $this->name,
+            'tab_module'  => $this->tab,
+            'module_name' => $this->name,
+        ]);
         $this->uploads_path = _PS_MODULE_DIR_.$this->name.'/img/';
         $this->admin_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/admin/';
         $this->hooks_tpl_path = _PS_MODULE_DIR_.$this->name.'/views/templates/hooks/';
@@ -108,7 +115,6 @@ class ThemeConfigurator extends Module
 
         if (!parent::install()
             || !$this->installDB()
-            || !$this->createAjaxController()
         ) {
             return false;
         }
@@ -156,28 +162,6 @@ class ThemeConfigurator extends Module
     }
 
     /**
-     * Create ajax controller
-     *
-     * @return bool
-     */
-    public function createAjaxController()
-    {
-        $tab = new Tab();
-        $tab->active = 1;
-        $languages = Language::getLanguages(false);
-        if (is_array($languages)) {
-            foreach ($languages as $language) {
-                $tab->name[$language['id_lang']] = 'themeconfigurator';
-            }
-        }
-        $tab->class_name = 'AdminThemeConfigurator';
-        $tab->module = $this->name;
-        $tab->id_parent = -1;
-
-        return (bool) $tab->add();
-    }
-
-    /**
      * Uninstall the module
      *
      * @return bool
@@ -196,7 +180,7 @@ class ThemeConfigurator extends Module
             $this->deleteImage($image['image']);
         }
 
-        if (!$this->runQueries('uninstall') || !$this->removeAjaxController() || !parent::uninstall()) {
+        if (!$this->runQueries('uninstall') || !parent::uninstall()) {
             return false;
         }
 
@@ -460,6 +444,27 @@ class ThemeConfigurator extends Module
         $html .= $this->renderThemeConfiguratorForm();
 
         return $html;
+    }
+
+    /**
+     * Ajax position update
+     */
+    public function ajaxProcessUpdatePosition()
+    {
+        $items = Tools::getValue('item');
+        $total = count($items);
+        $success = true;
+        for ($i = 1; $i <= $total; $i++) {
+            $success &= Db::getInstance()->update(
+                'themeconfigurator',
+                ['item_order' => $i],
+                '`id_item` = '.preg_replace('/(item-)([0-9]+)/', '${2}', $items[$i - 1])
+            );
+        }
+        if (!$success) {
+            die(json_encode(['error' => 'Update Fail']));
+        }
+        die(json_encode(['success' => 'Update Success !', 'error' => false]));
     }
 
     protected function getConfigurableModules()
@@ -891,7 +896,7 @@ class ThemeConfigurator extends Module
             'htmlitems',
             [
                 'items'      => $items,
-                'theme_url'  => $this->context->link->getAdminLink('AdminThemeConfigurator'),
+                'theme_url'  => $this->module_url,
                 'lang'       => [
                     'default'  => $this->default_language,
                     'all'      => $this->languages,
@@ -998,21 +1003,6 @@ class ThemeConfigurator extends Module
         if ($image != '' && is_file($fileName) && !strpos($fileName, 'banner-img') && !strpos($fileName, 'bg-theme') && !strpos($fileName, 'footer-bg')) {
             unlink($fileName);
         }
-    }
-
-    /**
-     * Remove ajax controller
-     *
-     * @return bool
-     */
-    protected function removeAjaxController()
-    {
-        if ($idTab = (int) Tab::getIdFromClassName('AdminThemeConfigurator')) {
-            $tab = new Tab($idTab);
-            $tab->delete();
-        }
-
-        return true;
     }
 
     /**
