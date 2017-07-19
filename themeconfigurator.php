@@ -999,7 +999,7 @@ class ThemeConfigurator extends Module
         $fileName = $this->uploads_path.$image;
 
         if (realpath(dirname($fileName)) != realpath($this->uploads_path)) {
-            Tools::dieOrLog(sprintf('Could not find upload directory'), false);
+            Logger::addLog(sprintf('Could not find upload directory'), 2);
         }
 
         if ($image != '' && is_file($fileName) && !strpos($fileName, 'banner-img') && !strpos($fileName, 'bg-theme') && !strpos($fileName, 'footer-bg')) {
