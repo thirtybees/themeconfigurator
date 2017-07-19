@@ -128,7 +128,7 @@ class ThemeConfigurator extends Module
         Configuration::updateValue('PS_TC_ACTIVE', 1);
         Configuration::updateValue('PS_SET_DISPLAY_SUBCATEGORIES', 1);
 
-        $this->installFixtures(Language::getLanguages(true))
+        $this->installFixtures(Language::getLanguages(true));
 
         return true;
     }
