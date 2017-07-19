@@ -54,7 +54,7 @@ class ThemeConfigurator extends Module
     {
         $this->name = 'themeconfigurator';
         $this->tab = 'front_office_features';
-        $this->version = '3.0.3';
+        $this->version = '3.0.4';
         $this->bootstrap = true;
         $this->secure_key = Tools::encrypt($this->name);
         $this->default_language = Language::getLanguage(Configuration::get('PS_LANG_DEFAULT'));
@@ -104,24 +104,25 @@ class ThemeConfigurator extends Module
         if (!parent::install()
             || !$this->installDB()
             || !$this->installFixtures(Language::getLanguages(true)) ||
-            !$this->registerHook('displayHeader') ||
-            !$this->registerHook('displayTopColumn') ||
-            !$this->registerHook('displayLeftColumn') ||
-            !$this->registerHook('displayRightColumn') ||
-            !$this->registerHook('displayHome') ||
-            !$this->registerHook('displayFooter') ||
-            !$this->registerHook('displayBackOfficeHeader') ||
-            !$this->registerHook('actionObjectLanguageAddAfter') ||
-            !Configuration::updateValue('PS_TC_THEMES', serialize($themesColors)) ||
-            !Configuration::updateValue('PS_TC_FONTS', serialize($themesFonts)) ||
-            !Configuration::updateValue('PS_TC_THEME', '') ||
-            !Configuration::updateValue('PS_TC_FONT', '') ||
-            !Configuration::updateValue('PS_TC_ACTIVE', 1) ||
-            !Configuration::updateValue('PS_SET_DISPLAY_SUBCATEGORIES', 1) ||
             !$this->createAjaxController()
         ) {
             return false;
         }
+
+        $this->registerHook('displayHeader');
+        $this->registerHook('displayTopColumn');
+        $this->registerHook('displayLeftColumn');
+        $this->registerHook('displayRightColumn');
+        $this->registerHook('displayHome');
+        $this->registerHook('displayFooter');
+        $this->registerHook('displayBackOfficeHeader');
+        $this->registerHook('actionObjectLanguageAddAfter');
+        Configuration::updateValue('PS_TC_THEMES', serialize($themesColors));
+        Configuration::updateValue('PS_TC_FONTS', serialize($themesFonts));
+        Configuration::updateValue('PS_TC_THEME', '');
+        Configuration::updateValue('PS_TC_FONT', '');
+        Configuration::updateValue('PS_TC_ACTIVE', 1);
+        Configuration::updateValue('PS_SET_DISPLAY_SUBCATEGORIES', 1);
 
         return true;
     }
@@ -133,30 +134,31 @@ class ThemeConfigurator extends Module
      */
     private function installDB()
     {
-        return (
-            Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.'themeconfigurator`') &&
-            Db::getInstance()->execute(
-                '
-			CREATE TABLE `'._DB_PREFIX_.'themeconfigurator` (
-					`id_item`      INT(11) UNSIGNED    NOT NULL AUTO_INCREMENT,
-					`id_shop`      int(11) UNSIGNED    NOT NULL,
-					`id_lang`      INT(11) UNSIGNED    NOT NULL,
-					`item_order`   INT(11) UNSIGNED    NOT NULL,
-					`title`        VARCHAR(100),
-					`title_use`    TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\',
-					`hook`         VARCHAR(100),
-					`url`          TEXT,
-					`target`       TINYINT(1) UNSIGNED NOT NULL DEFAULT \'0\',
-					`image`        VARCHAR(100),
-					`image_w`      VARCHAR(10),
-					`image_h`      VARCHAR(10),
-					`html`         TEXT,
-					`active`       TINYINT(1) UNSIGNED NOT NULL DEFAULT \'1\',
-					PRIMARY KEY (`id_item`)
-			) ENGINE = '._MYSQL_ENGINE_.' DEFAULT CHARSET=UTF8;'
-            )
-        );
+        return $this->runQueries('install');
+    }
 
+    /**
+     * @param string $file
+     *
+     * @return bool
+     */
+    protected function runQueries($file)
+    {
+        if (!file_exists(__DIR__.DIRECTORY_SEPARATOR.'sql'.DIRECTORY_SEPARATOR.$file.'.sql')) {
+            return false;
+        } elseif (!$sql = file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'sql'.DIRECTORY_SEPARATOR.$file.'.sql')) {
+            return false;
+        }
+        $sql = str_replace(['PREFIX_', 'ENGINE_TYPE', 'DB_NAME'], [_DB_PREFIX_, _MYSQL_ENGINE_, _DB_NAME_], $sql);
+        $sql = preg_split("/;\s*[\r\n]+/", trim($sql));
+
+        foreach ($sql as $query) {
+            if (!Db::getInstance()->execute(trim($query))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -262,7 +264,7 @@ class ThemeConfigurator extends Module
             $this->deleteImage($image['image']);
         }
 
-        if (!Db::getInstance()->execute('DROP TABLE IF EXISTS `'._DB_PREFIX_.'themeconfigurator`') || !$this->removeAjaxController() || !parent::uninstall()) {
+        if (!$this->runQueries('uninstall') || !$this->removeAjaxController() || !parent::uninstall()) {
             return false;
         }
 

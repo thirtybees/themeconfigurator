@@ -10,6 +10,7 @@ FILES+=("css/**")
 FILES+=("img/**")
 FILES+=("js/**")
 FILES+=("sass/**")
+FILES+=("sql/**")
 FILES+=("upgrade/**")
 FILES+=("views/**")
 
