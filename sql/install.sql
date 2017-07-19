@@ -18,5 +18,5 @@ CREATE TABLE IF NOT EXISTS `PREFIX_themeconfigurator` (
   PRIMARY KEY (`id_item`)
 )
   ENGINE = DB_ENGINE
-  DEFAULT CHARSET = utf8mb
+  DEFAULT CHARSET = utf8mb4
   COLLATE utf8mb4_unicode_ci;
