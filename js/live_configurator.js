@@ -29,7 +29,7 @@ $(document).ready(
 		$('a').each(function()
 		{
 			var href = $(this).attr('href');
-			var search = tzhis.search;
+			var search = this.search;
 
 			var href_add = 'live_configurator_token=' + get('live_configurator_token')
 				+ '&id_shop=' + get('id_shop')
