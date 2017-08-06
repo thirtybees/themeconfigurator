@@ -636,7 +636,7 @@ class ThemeConfigurator extends Module
         if (is_array($image) && (ImageManager::validateUpload($image, $this->max_image_size) === false) && ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)) {
             $salt = sha1(microtime());
             $pathinfo = pathinfo($image['name']);
-            $imgName = $salt.'_'.Tools::str2url($pathinfo['filename']).'.'.$pathinfo['extension'];
+            $imgName = $salt.'_'.Tools::str2url(str_replace('%', '', urlencode($pathinfo['filename']))).'.'.$pathinfo['extension'];
 
             if (ImageManager::resize($tmpName, dirname(__FILE__).'/img/'.$imgName, $imageW, $imageH)) {
                 $res = true;
