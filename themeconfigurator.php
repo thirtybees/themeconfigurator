@@ -636,7 +636,7 @@ class ThemeConfigurator extends Module
         if (is_array($image) && (ImageManager::validateUpload($image, $this->max_image_size) === false) && ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)) {
             $salt = sha1(microtime());
             $pathinfo = pathinfo($image['name']);
-            $imgName = $salt.'_'.Tools::str2url($pathinfo['filename']).'.'.$pathinfo['extension'];
+            $imgName = $salt.'_'.Tools::str2url(str_replace('%', '', urlencode($pathinfo['filename']))).'.'.$pathinfo['extension'];
 
             if (ImageManager::resize($tmpName, dirname(__FILE__).'/img/'.$imgName, $imageW, $imageH)) {
                 $res = true;
@@ -680,13 +680,15 @@ class ThemeConfigurator extends Module
         $imageW = (is_numeric(Tools::getValue('item_img_w'))) ? (int) Tools::getValue('item_img_w') : '';
         $imageH = (is_numeric(Tools::getValue('item_img_h'))) ? (int) Tools::getValue('item_img_h') : '';
 
-        if (!empty($_FILES['item_img']['name'])) {
-            if ($oldImage = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
-                (new DbQuery())
-                    ->select('`image`')
-                    ->from('themeconfigurator')
-                    ->where('`id_item` = '.(int) $idItem)
-            )) {
+	    $oldImage = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+		    (new DbQuery())
+			    ->select('`image`')
+			    ->from('themeconfigurator')
+			    ->where('`id_item` = '.(int) $idItem)
+	    );
+
+	    if (!empty($_FILES['item_img']['name'])) {
+            if ($oldImage) {
                 if (file_exists(dirname(__FILE__).'/img/'.$oldImage)) {
                     @unlink(dirname(__FILE__).'/img/'.$oldImage);
                 }
@@ -705,7 +707,7 @@ class ThemeConfigurator extends Module
                 'hook'      => pSQL(Tools::getValue('item_hook')),
                 'url'       => pSQL(Tools::getValue('item_url')),
                 'target'    => (int) Tools::getValue('item_target'),
-                'image'     => isset($image) ? pSQL($image) : '',
+                'image'     => isset($image) ? pSQL($image) : $oldImage,
                 'image_w'   => (int) $imageW,
                 'image_h'   => (int) $imageH,
                 'active'    => (int) Tools::getValue('item_active'),
@@ -713,7 +715,12 @@ class ThemeConfigurator extends Module
             ],
             '`id_item` = '.(int) Tools::getValue('item_id')
         )) {
-            if ($image = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue('SELECT image FROM `'._DB_PREFIX_.'themeconfigurator` WHERE id_item = '.(int) Tools::getValue('item_id'))) {
+            if ($image = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue(
+	            (new DbQuery())
+		            ->select('`image`')
+		            ->from('themeconfigurator')
+		            ->where('`id_item` = '.(int) Tools::getValue('item_id'))
+            )) {
                 $this->deleteImage($image);
             }
 
