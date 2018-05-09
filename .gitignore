@@ -1,1 +1,7 @@
-*themeconfigurator*.zip
+
+/translations/*
+!/translations/index.php
+
+/config*.xml
+
+themeconfigurator-*.zip
