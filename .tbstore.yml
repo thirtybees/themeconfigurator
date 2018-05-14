@@ -1,0 +1,15 @@
+module_name: Theme configurator
+compatible_versions: 1.0.0+
+author: thirty bees
+category: front office
+tags:
+  - configuration
+  - theme configuration
+  - top banner
+  - social links
+  - contact information
+description_short: Configure the main elements of your theme.
+description: description.md
+images:
+  - image-1.png
+license: AFL 3.0
