@@ -69,7 +69,7 @@ class ThemeConfigurator extends Module
         $this->languages = Language::getLanguages();
         $this->author = 'thirty bees';
         parent::__construct();
-        $this->displayName = $this->l('Theme configurator');
+        $this->displayName = $this->l('Theme Configurator');
         $this->description = $this->l('Configure the main elements of your theme.');
         $this->module_path = _PS_MODULE_DIR_.$this->name.'/';
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id && Context::getContext()->link instanceof Link) {
