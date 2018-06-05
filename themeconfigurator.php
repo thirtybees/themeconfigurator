@@ -63,14 +63,16 @@ class ThemeConfigurator extends Module
         $this->name = 'themeconfigurator';
         $this->tab = 'front_office_features';
         $this->version = '3.0.5';
+        $this->author = 'thirty bees';
+        $this->need_instance = 0;
         $this->bootstrap = true;
         $this->secure_key = Tools::encrypt($this->name);
         $this->default_language = Language::getLanguage(Configuration::get('PS_LANG_DEFAULT'));
         $this->languages = Language::getLanguages();
-        $this->author = 'thirty bees';
         parent::__construct();
         $this->displayName = $this->l('Theme Configurator');
         $this->description = $this->l('Configure the main elements of your theme.');
+        $this->tb_versions_compliancy = '> 1.0.0';
         $this->module_path = _PS_MODULE_DIR_.$this->name.'/';
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id && Context::getContext()->link instanceof Link) {
             $this->module_url = Context::getContext()->link->getAdminLink('AdminModules', true).'&'.http_build_query([
