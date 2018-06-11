@@ -131,8 +131,11 @@ class ThemeConfigurator extends Module
         $this->registerHook('displayFooter');
         $this->registerHook('displayBackOfficeHeader');
         $this->registerHook('actionObjectLanguageAddAfter');
-        Configuration::updateValue('PS_TC_THEMES', serialize($themesColors));
-        Configuration::updateValue('PS_TC_FONTS', serialize($themesFonts));
+        // TODO: these two shouldn't be stored in the database, but provided
+        //       as instance variables.
+        Configuration::updateValue('PS_TC_THEMES', json_encode($themesColors));
+        Configuration::updateValue('PS_TC_FONTS', json_encode($themesFonts));
+
         Configuration::updateValue('PS_TC_THEME', '');
         Configuration::updateValue('PS_TC_FONT', '');
         Configuration::updateValue('PS_TC_ACTIVE', 1);
@@ -368,10 +371,22 @@ class ThemeConfigurator extends Module
                 $adImage = $this->_path.'img/en/advertisement.png';
             }
 
+            $themes = json_decode(Configuration::get('PS_TC_THEMES'), true);
+            $fonts = json_decode(Configuration::get('PS_TC_FONTS'), true);
+
+            // Retrocompatibility for module versions <= 3.0.7, which happened
+            // to use serialize() rather than json_encode().
+            if (!$themes) {
+                $themes = Tools::unSerialize(Configuration::get('PS_TC_THEMES'));
+            }
+            if (!$fonts) {
+                $fonts = Tools::unSerialize(Configuration::get('PS_TC_FONTS'));
+            }
+
             $this->smarty->assign(
                 [
-                    'themes'                  => unserialize(Configuration::get('PS_TC_THEMES')),
-                    'fonts'                   => unserialize(Configuration::get('PS_TC_FONTS')),
+                    'themes'                  => $themes,
+                    'fonts'                   => $fonts,
                     'theme_font'              => Tools::getValue('theme_font', Configuration::get('PS_TC_FONT')),
                     'live_configurator_token' => $this->getLiveConfiguratorToken(),
                     'id_shop'                 => (int) $this->context->shop->id,
