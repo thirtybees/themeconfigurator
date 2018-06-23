@@ -22,9 +22,6 @@
  * PrestaShop is an internationally registered trademark of PrestaShop SA.
  *}
 
-<div id="gear-right">
-	<i class="icon-cogs icon-2x icon-light"></i>
-</div>
 <form action="" method="post">
 	<div id="tool_customization">
 		<p>
@@ -75,3 +72,6 @@
 		</div>
 	</div>
 </form>
+<div id="gear-right">
+	<i class="icon-cogs icon-2x icon-light"></i>
+</div>

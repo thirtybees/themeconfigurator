@@ -73,13 +73,16 @@ $(document).ready(
 			{
 				if ($(this).css('left') == '215px')
 				{
-					$('#tool_customization').animate({left : '-215px'}, 500);
+					$('#tool_customization').animate({left: '-215px'}, 500)
+																	.delay(500).css({boxShadow: 'none'});
 					$(this).animate({left : '0px'}, 500);
 					$.totalStorage('live_configurator_visibility', 0);
 				}
 				else
 				{
-					$('#tool_customization').animate({left : '0px'}, 500);
+					shadow = $.totalStorage('live_configurator_shadow')
+					$('#tool_customization').animate({left: '0px'}, 500)
+																	.css({boxShadow: shadow});
 					$(this).animate({left : '215px'}, 500);
 					$.totalStorage('live_configurator_visibility', 1);
 				}
@@ -129,6 +132,9 @@ $(document).ready(
 			$('#gear-right').animate({left : '0px'}, 200);
 		}
 
+		shadow = $('#tool_customization').css('boxShadow');
+		$.totalStorage('live_configurator_shadow', shadow);
+		$('#tool_customization').css({boxShadow: 'none'});
 	}
 );
 

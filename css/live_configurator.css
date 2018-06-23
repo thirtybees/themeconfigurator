@@ -23,7 +23,7 @@
  */
 
 #gear-right {
-	background: #333333;
+	background: #ffffff;
 	display: block;
 	height: 50px;
 	left: 0px;
@@ -32,12 +32,12 @@
 	width: 50px;
 	z-index: 10000;
 	cursor: pointer;
+	box-shadow: 2px 2px 5px 2px rgba(0, 0, 0, 0.5);
 }
 #gear-right i {
 	display: block;
 	padding-top: 10px;
 	text-align: center;
-	color: #fff;
 }
 #tool_customization{
 	position: fixed;
@@ -46,7 +46,8 @@
 	z-index: 10000;
 	height: auto;
 	width: 215px;
-	background: #333333
+	background: #333333;
+	box-shadow: 2px 2px 5px 2px rgba(0, 0, 0, 0.5);
 }
 #tool_customization p{
 	padding: 15px;
