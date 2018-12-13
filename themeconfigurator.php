@@ -62,7 +62,7 @@ class ThemeConfigurator extends Module
     {
         $this->name = 'themeconfigurator';
         $this->tab = 'front_office_features';
-        $this->version = '3.0.7';
+        $this->version = '3.0.8';
         $this->author = 'thirty bees';
         $this->need_instance = 0;
         $this->bootstrap = true;
