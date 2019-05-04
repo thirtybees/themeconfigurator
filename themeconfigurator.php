@@ -891,7 +891,6 @@ class ThemeConfigurator extends Module
                     'module'    => $this->name,
                     'name'      => $this->displayName,
                     'version'   => $this->version,
-                    'psVersion' => _PS_VERSION_,
                     'context'   => (Configuration::get('PS_MULTISHOP_FEATURE_ACTIVE') == 0) ? 1 : ($this->context->shop->getTotalShops() != 1) ? $this->context->shop->getContext() : 1,
                 ],
             ]
