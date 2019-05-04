@@ -73,6 +73,7 @@ class ThemeConfigurator extends Module
         $this->displayName = $this->l('Theme Configurator');
         $this->description = $this->l('Configure the main elements of your theme.');
         $this->tb_versions_compliancy = '> 1.0.0';
+        $this->tb_min_version = '1.0.0';
         $this->module_path = _PS_MODULE_DIR_.$this->name.'/';
         if (isset(Context::getContext()->employee->id) && Context::getContext()->employee->id && Context::getContext()->link instanceof Link) {
             $this->module_url = Context::getContext()->link->getAdminLink('AdminModules', true).'&'.http_build_query([
