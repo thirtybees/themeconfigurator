@@ -874,12 +874,23 @@ class ThemeConfigurator extends Module
 
     /**
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     protected function renderThemeConfiguratorForm()
     {
         $idShop = (int) $this->context->shop->id;
         $items = [];
         $hooks = [];
+
+        if (Configuration::get('PS_MULTISHOP_FEATURE_ACTIVE') == 0) {
+            $shopContext = 1;
+        } else {
+            $shopContext = $this->context->shop->getTotalShops() != 1
+                ? $this->context->shop->getContext()
+                : 1;
+        }
 
         $this->context->smarty->assign(
             'htmlcontent',
@@ -891,7 +902,7 @@ class ThemeConfigurator extends Module
                     'module'    => $this->name,
                     'name'      => $this->displayName,
                     'version'   => $this->version,
-                    'context'   => (Configuration::get('PS_MULTISHOP_FEATURE_ACTIVE') == 0) ? 1 : ($this->context->shop->getTotalShops() != 1) ? $this->context->shop->getContext() : 1,
+                    'context'   => $shopContext,
                 ],
             ]
         );
