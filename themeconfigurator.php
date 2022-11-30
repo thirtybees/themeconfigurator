@@ -45,8 +45,6 @@ class ThemeConfigurator extends Module
     public $hooks_tpl_path;
     /** @var string $uploads_path */
     public $uploads_path;
-    /** @var string $secure_key */
-    public $secure_key;
     /** @var string $module_path */
     public $module_path;
     /** @var string $module_url */
@@ -66,7 +64,6 @@ class ThemeConfigurator extends Module
         $this->author = 'thirty bees';
         $this->need_instance = 0;
         $this->bootstrap = true;
-        $this->secure_key = Tools::encrypt($this->name);
         $this->default_language = Language::getLanguage(Configuration::get('PS_LANG_DEFAULT'));
         $this->languages = Language::getLanguages();
         parent::__construct();
