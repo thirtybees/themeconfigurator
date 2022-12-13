@@ -531,7 +531,7 @@ class ThemeConfigurator extends Module
         // Construct the description for the 'Enable Live Configurator' switch
         if ($this->context->shop->getBaseURL()) {
             $request = 'live_configurator_token='.$this->getLiveConfiguratorToken().'&id_employee='.(int) $this->context->employee->id.'&id_shop='.(int) $this->context->shop->id.(Configuration::get('PS_TC_THEME') != '' ? '&theme='.Configuration::get('PS_TC_THEME') : '').(Configuration::get('PS_TC_FONT') != '' ? '&theme_font='.Configuration::get('PS_TC_FONT') : '');
-            $url = $this->context->link->getPageLink('index', null, $idLang = null, $request);
+            $url = $this->context->link->getPageLink('index', null, null, $request);
             $desc = '<a class="btn btn-default" href="'.$url.'" onclick="return !window.open($(this).attr(\'href\'));" id="live_conf_button">'.$this->l('View').' <i class="icon-external-link"></i></a><br />'.$this->l('Only you can see this on your front office - your visitors will not see this tool.');
         } else {
             $desc = $this->l('Only you can see this on your front office - your visitors will not see this tool.');
@@ -696,6 +696,7 @@ class ThemeConfigurator extends Module
     protected function uploadImage($image, $imageW = '', $imageH = '')
     {
         $res = false;
+        $imgName = false;
         if (is_array($image) && (ImageManager::validateUpload($image, static::MAX_IMAGE_SIZE) === false) && ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)) {
             $salt = sha1(microtime());
             $pathinfo = pathinfo($image['name']);
@@ -712,7 +713,7 @@ class ThemeConfigurator extends Module
             return false;
         }
 
-        return isset($imgName) ? $imgName : false;
+        return $imgName;
     }
 
     /**
@@ -894,6 +895,9 @@ class ThemeConfigurator extends Module
             ],
         ];
 
+        /** @var AdminController $controller */
+        $controller = $this->context->controller;
+
         $helper = new HelperForm();
         $helper->show_toolbar = false;
         $helper->table = $this->table;
@@ -908,7 +912,7 @@ class ThemeConfigurator extends Module
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->tpl_vars = [
             'fields_value' => $this->getConfigFieldsValues(),
-            'languages'    => $this->context->controller->getLanguages(),
+            'languages'    => $controller->getLanguages(),
             'id_language'  => $this->context->language->id,
         ];
 
@@ -998,7 +1002,7 @@ class ThemeConfigurator extends Module
                     'lang_dir' => _THEME_LANG_DIR_,
                     'user'     => $this->context->language->id,
                 ],
-                'postAction' => 'index.php?tab=AdminModules&configure='.$this->name.'&token='.Tools::getAdminTokenLite('AdminModules').'&tab_module=other&module_name='.$this->name.'',
+                'postAction' => 'index.php?tab=AdminModules&configure='.$this->name.'&token='.Tools::getAdminTokenLite('AdminModules').'&tab_module=other&module_name='.$this->name,
                 'id_shop'    => $idShop,
             ]
         );
@@ -1060,13 +1064,11 @@ class ThemeConfigurator extends Module
      */
     protected function installFixture($hook, $idImage, $idShop, $idLang)
     {
-        $result = true;
-
         $sizes = @getimagesize((dirname(__FILE__).DIRECTORY_SEPARATOR.'img'.DIRECTORY_SEPARATOR.'banner-img'.(int) $idImage.'.jpg'));
         $width = (isset($sizes[0]) && $sizes[0]) ? (int) $sizes[0] : 0;
         $height = (isset($sizes[1]) && $sizes[1]) ? (int) $sizes[1] : 0;
 
-        $result &= Db::getInstance()->insert(
+        $result = Db::getInstance()->insert(
             'themeconfigurator',
             [
                 'id_shop'    => (int) $idShop,
@@ -1100,7 +1102,7 @@ class ThemeConfigurator extends Module
         $fileName = $this->uploads_path.$image;
 
         if (realpath(dirname($fileName)) != realpath($this->uploads_path)) {
-            Logger::addLog(sprintf('Could not find upload directory'), 2);
+            Logger::addLog('Could not find upload directory', 2);
         }
 
         if ($image != '' && is_file($fileName) && !strpos($fileName, 'banner-img') && !strpos($fileName, 'bg-theme') && !strpos($fileName, 'footer-bg')) {
