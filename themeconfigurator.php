@@ -32,7 +32,6 @@ if (!defined('_TB_VERSION_')) {
  */
 class ThemeConfigurator extends Module
 {
-    // @codingStandardsIgnoreStart
     /** @var int $max_image_size */
     protected $max_image_size = 1048576;
     /** @var mixed $default_language */
@@ -51,10 +50,12 @@ class ThemeConfigurator extends Module
     public $module_url = '';
     /** @var array $fields_form */
     public $fields_form;
-    // @codingStandardsIgnoreEnd
 
     /**
      * ThemeConfigurator constructor.
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function __construct()
     {
@@ -88,6 +89,8 @@ class ThemeConfigurator extends Module
      * Install the module
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function install()
     {
@@ -150,6 +153,8 @@ class ThemeConfigurator extends Module
      * @param array|null $languages
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function installFixtures($languages = null)
     {
@@ -170,6 +175,8 @@ class ThemeConfigurator extends Module
      * Uninstall the module
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function uninstall()
     {
@@ -210,6 +217,9 @@ class ThemeConfigurator extends Module
      * Display header
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookdisplayHeader()
     {
@@ -253,6 +263,8 @@ class ThemeConfigurator extends Module
      * Live configurator token
      *
      * @return bool|string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function getLiveConfiguratorToken()
     {
@@ -265,6 +277,8 @@ class ThemeConfigurator extends Module
      * @param array $params
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function hookActionObjectLanguageAddAfter($params)
     {
@@ -273,6 +287,9 @@ class ThemeConfigurator extends Module
 
     /**
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookdisplayTopColumn()
     {
@@ -281,6 +298,9 @@ class ThemeConfigurator extends Module
 
     /**
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookdisplayTop()
     {
@@ -301,6 +321,9 @@ class ThemeConfigurator extends Module
      * Hook display home
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookDisplayHome()
     {
@@ -318,6 +341,9 @@ class ThemeConfigurator extends Module
      * Display left column
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookDisplayLeftColumn()
     {
@@ -335,6 +361,9 @@ class ThemeConfigurator extends Module
      * Display right column
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookDisplayRightColumn()
     {
@@ -352,6 +381,9 @@ class ThemeConfigurator extends Module
      * Display footer
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function hookDisplayFooter()
     {
@@ -412,6 +444,9 @@ class ThemeConfigurator extends Module
      * Get module configuration page
      *
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     public function getContent()
     {
@@ -465,6 +500,8 @@ class ThemeConfigurator extends Module
 
     /**
      * Ajax position update
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     public function ajaxProcessUpdatePosition()
     {
@@ -484,6 +521,11 @@ class ThemeConfigurator extends Module
         die(json_encode(['success' => 'Update Success !', 'error' => false]));
     }
 
+    /**
+     * @return array[]
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
     protected function getConfigurableModules()
     {
         // Construct the description for the 'Enable Live Configurator' switch
@@ -568,6 +610,11 @@ class ThemeConfigurator extends Module
         return $ret;
     }
 
+    /**
+     * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
     protected function addItem()
     {
         $title = Tools::getValue('item_title');
@@ -639,11 +686,12 @@ class ThemeConfigurator extends Module
     }
 
     /**
-     * @param array  $image
+     * @param array $image
      * @param string $imageW
      * @param string $imageH
      *
      * @return bool|string
+     * @throws PrestaShopException
      */
     protected function uploadImage($image, $imageW = '', $imageH = '')
     {
@@ -671,6 +719,7 @@ class ThemeConfigurator extends Module
      * @param string $value
      *
      * @return string
+     * @throws PrestaShopException
      */
     protected function filterVar($value)
     {
@@ -679,6 +728,8 @@ class ThemeConfigurator extends Module
 
     /**
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function updateItem()
     {
@@ -749,6 +800,11 @@ class ThemeConfigurator extends Module
         return true;
     }
 
+    /**
+     * @return void
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
     protected function removeItem()
     {
         $idItem = (int) Tools::getValue('item_id');
@@ -782,6 +838,9 @@ class ThemeConfigurator extends Module
 
     /**
      * @return string
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     * @throws SmartyException
      */
     protected function renderConfigurationForm()
     {
@@ -858,6 +917,8 @@ class ThemeConfigurator extends Module
 
     /**
      * @return array
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function getConfigFieldsValues()
     {
@@ -951,6 +1012,8 @@ class ThemeConfigurator extends Module
      * @param string $file
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function runQueries($file)
     {
@@ -975,6 +1038,8 @@ class ThemeConfigurator extends Module
      * Install the module's DB table(s)
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function installDB()
     {
@@ -985,11 +1050,13 @@ class ThemeConfigurator extends Module
      * Install a fixture
      *
      * @param string $hook
-     * @param int    $idImage
-     * @param int    $idShop
-     * @param int    $idLang
+     * @param int $idImage
+     * @param int $idShop
+     * @param int $idLang
      *
      * @return bool
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function installFixture($hook, $idImage, $idShop, $idLang)
     {
@@ -1025,6 +1092,8 @@ class ThemeConfigurator extends Module
      * Delete an image
      *
      * @param $image
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function deleteImage($image)
     {
@@ -1043,6 +1112,7 @@ class ThemeConfigurator extends Module
      * Check environment
      *
      * @return bool
+     * @throws PrestaShopException
      */
     protected function checkEnvironment()
     {
@@ -1057,6 +1127,8 @@ class ThemeConfigurator extends Module
      * @param string $hook
      *
      * @return array|bool|false|null|PDOStatement
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
      */
     protected function getItemsFromHook($hook)
     {
