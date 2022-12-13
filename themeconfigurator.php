@@ -32,8 +32,8 @@ if (!defined('_TB_VERSION_')) {
  */
 class ThemeConfigurator extends Module
 {
-    /** @var int $max_image_size */
-    protected $max_image_size = 1048576;
+    const MAX_IMAGE_SIZE = 1048576;
+
     /** @var mixed $default_language */
     protected $default_language;
     /** @var array $languages */
@@ -696,7 +696,7 @@ class ThemeConfigurator extends Module
     protected function uploadImage($image, $imageW = '', $imageH = '')
     {
         $res = false;
-        if (is_array($image) && (ImageManager::validateUpload($image, $this->max_image_size) === false) && ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)) {
+        if (is_array($image) && (ImageManager::validateUpload($image, static::MAX_IMAGE_SIZE) === false) && ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)) {
             $salt = sha1(microtime());
             $pathinfo = pathinfo($image['name']);
             $imgName = $salt.'_'.Tools::str2url(str_replace('%', '', urlencode($pathinfo['filename']))).'.'.$pathinfo['extension'];
