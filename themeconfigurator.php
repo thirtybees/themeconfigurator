@@ -697,7 +697,11 @@ class ThemeConfigurator extends Module
     {
         $res = false;
         $imgName = false;
-        if (is_array($image) && (ImageManager::validateUpload($image, static::MAX_IMAGE_SIZE) === false) && ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)) {
+        $error = null;
+        if (is_array($image) &&
+            (($error = ImageManager::validateUpload($image, static::MAX_IMAGE_SIZE)) === false) &&
+            ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)
+        ) {
             $salt = sha1(microtime());
             $pathinfo = pathinfo($image['name']);
             $imgName = $salt.'_'.Tools::str2url(str_replace('%', '', urlencode($pathinfo['filename']))).'.'.$pathinfo['extension'];
@@ -708,8 +712,10 @@ class ThemeConfigurator extends Module
         }
 
         if (!$res) {
-            $this->context->smarty->assign('error', $this->l('An error occurred during the image upload.'));
-
+            if (! $error) {
+                $error = $this->l('An error occurred during the image upload.');
+            }
+            $this->context->smarty->assign('error', $error);
             return false;
         }
 
