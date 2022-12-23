@@ -32,8 +32,6 @@ if (!defined('_TB_VERSION_')) {
  */
 class ThemeConfigurator extends Module
 {
-    const MAX_IMAGE_SIZE = 1048576;
-
     /** @var mixed $default_language */
     protected $default_language;
     /** @var array $languages */
@@ -699,7 +697,7 @@ class ThemeConfigurator extends Module
         $imgName = false;
         $error = null;
         if (is_array($image) &&
-            (($error = ImageManager::validateUpload($image, static::MAX_IMAGE_SIZE)) === false) &&
+            (($error = ImageManager::validateUpload($image, Tools::getMaxUploadSize())) === false) &&
             ($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) && move_uploaded_file($image['tmp_name'], $tmpName)
         ) {
             $salt = sha1(microtime());
