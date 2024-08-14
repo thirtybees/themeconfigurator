@@ -1,3 +1,4 @@
+<?php
 /**
  * Copyright (C) 2017-2024 thirty bees
  * Copyright (C) 2007-2016 PrestaShop SA
@@ -22,29 +23,13 @@
  * PrestaShop is an internationally registered trademark of PrestaShop SA.
  */
 
-@font-face {
-  font-family: 'Lato';
-  font-weight: 400;
-  font-style: normal;
-  src: url('../fonts/lato_400_normal_be3a1471fb5a502cb5fb6f8a0188158c.woff2') format('woff2');
-  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+header('Last-Modified: '.gmdate('D, d M Y H:i:s').' GMT');
 
-@font-face {
-  font-family: 'Lato';
-  font-weight: 400;
-  font-style: normal;
-  src: url('../fonts/lato_400_normal_e533cf3171ab0d6e5f1d2558d5b77fa9.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
 
-@font-face {
-  font-family: 'Lato';
-  font-weight: 400;
-  font-style: normal;
-  src: url('../fonts/lato_400_normal_default.woff') format('woff');
-}
+header('Location: ../');
 
-h1, h2, h3, h4, h5 {
-	font-family: 'Lato', sans-serif !important;
-}
+exit;
